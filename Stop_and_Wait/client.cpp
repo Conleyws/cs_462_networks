@@ -1,0 +1,256 @@
+#include "client.h"
+#include "Sieve.h"
+int main(int argc, char **argv) {
+
+  // Picking
+  int option;
+  bool hasPicked = false;
+  
+  // Statistics
+  long totalPacketSize = 0;
+  int totalTime = 0;
+  long numAcks = 0;
+  double rttTime = 0.0;
+  long throughput = 0;
+  long md5 = 0;
+
+  // File
+  string fileName;
+  ifstream inputFile;
+
+  // Input Parameters
+  long packetSize;
+  long maxSequence;
+  long numPackets = 0;
+  long sequenceNumber = 0;
+
+  std::cout << "[1] Use Defaults" << std::endl << "[2] Customize Options" << std::endl;
+  
+  while(!hasPicked) {
+    try {
+      std::cin >> option;
+    } catch (int e) {
+      printf("Invalid input type; you must use a number\n");
+    }    
+  }
+  
+  if (option == 2) {
+    hasPicked = false;
+    std::cout << "Choose a networking protocol:" << std::endl << "[1] Stop and Wait" << std::endl << "[2] Go Back N?" << std::endl << "[3] Selective Repeat?" << std::endl;
+    // Loop until a valid option is input.
+    while(!hasPicked) {
+      try {
+        std::cin >> option;
+      } catch (int e) {
+        printf("Invalid input type; you must use a number\n");
+      }
+
+    switch(option) {
+      case 1:
+        std::cout << "Running Stop and Wait" << std::endl << "Enter packet size in bits: " << std::endl;
+        try{
+          std::cin >> packetSize; 
+          while (packetSize < 1){
+            std::cout << "Error: You must choose a number greater than 0" << std::endl;
+            std::cin >> packetSize;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for size of packet!" << std::endl;
+        }
+        std::cout << "Enter max sequence number:" << std::endl;
+        try{
+          std::cin >> maxSequence; 
+          while (maxSequence < 1) {
+            std::cout << "Error: Sequence number must be a positive value!" << std::endl << "Enter a valid sequence number:" << std::endl;
+            std::cin >> maxSequence;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for sequence number!" << std::endl;
+        } 
+        hasPicked = true;
+        break;
+      case 2:
+        std::cout << "Running Go Back N" << std::endl;
+        hasPicked = true;
+        break;
+      case 3:
+        std::cout << "Running Selective Repeate" << std::endl;
+        hasPicked = true;
+        break;
+      default:
+        printf("Choose a valid option\n");
+      }
+    }
+  } else {
+    std::cout << "Using default values" << std::endl;
+  }
+  
+  // Get file location
+  hasPicked = false;
+  std::cout << "Input file name:" << std::endl;
+  while(!hasPicked) {
+    try {
+      std::cin >> fileName;  
+      inputFile.open(fileName.c_str(), ios:: in); 
+      if(inputFile){
+        hasPicked = true;
+      } else {
+        std::cout << "Invalid file name. Try again!" << std::endl;
+      }
+    } catch (int e) {
+      std::cout << "Error opening file. Try Again!" << std::endl;
+    }
+  }
+  
+  
+  // Socket setup
+  int sockfd;
+  struct sockaddr_in serv_addr;
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0) {
+    fprintf(stderr, "ERROR opening socket\n");
+    exit(1);
+  }
+
+  int portno = atoi(argv[1]);
+  memset(&serv_addr, '0', sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(portno);
+
+  try{
+    struct hostent *server;
+    server = gethostbyname("thing1.cs.uwec.edu");
+
+    if(server == NULL) {
+      printf("ERROR, no such host\n");
+      std::cout << "ERROR, no such host!" << std::endl;
+      exit(1);
+    }
+    memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
+    unsigned int seconds = 3;
+    while (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+      std::cout << "Error connecting to " << serv_addr << " on socket " << sockfd << std::endl;
+      sleep(seconds); 
+    }
+  }catch (const std::exception &exc){
+    // catch anything thrown within try block that derives from std::exception
+    std::cout << "Error connecting to server\n";
+    std::cerr << exc.what();
+  }
+
+  // ****************************** Sending the total size to expect ******************************
+  // Length to expect
+  int len = nums.size() + 1;
+  int convertedLen = htonl(len);
+  // Send the amount the client should expect to receive
+  printf("Sending Total Length: %d\n", len);
+  sent = send(newsockfd, &convertedLen, sizeof(int), 0);
+  if (sent < 0) {
+    perror("Error sending expected size");
+    exit(0);
+  }
+  
+  printf("Sending Packet Size: %d\n", len);
+  sent = send(newsockfd, &packetSize, sizeof(int), 0);
+  if (sent < 0) {
+    perror("Error sending packet size");
+    exit(0);
+  }
+  
+
+  int receivedPrime = 0;
+  int sent = 0;
+  int totalSent = 0;
+  std::vector<char> nums;
+  char *buff = new char[len];
+  // ********************************** Begin Loop of receiving and sending information *********************
+
+  while (!finishedSending) {
+    // Clear buffer 
+    bzero(buff,len);
+    
+    // Send Packet
+    
+
+
+    // Listen for Ack
+    // If timeout - resend packet ? Don't increase sequence #
+    // Use total sequence # to get body for each packet
+    
+    
+
+    // ******************************** Receiving Ack *********************
+    //printf("Receiving numbers from server!\n");
+    received = 0;
+    nums.clear();
+      
+    received += recv(sockfd, buff, len, 0);
+    if(received < 0){
+      perror("Error receieving data.\n");
+    } else if (received == 0) {
+      std::cout << "Socket closed!" << std::endl;
+      close(sockfd);
+      exit(1);
+    }
+
+    // Need to split packet between header and body
+    // Make sure ack is for correct packet
+    nums.insert(nums.end(), buff, buff + strlen(buff));
+    bzero(buff, len);
+    
+    
+    
+    // Print received list
+    std::cout << "Recieved: " << std::endl;
+    sieve->printList(nums, 0);
+    // Print Prime
+    std::cout << "Current Prime: " << currentPrime << std::endl;
+    // Find next prime
+    currentPrime = sieve->findNextPrime(nums, currentPrime); 
+    // Removing multiples
+    //printf("Removing Multiples for prime: %d\n", currentPrime);
+    nums = sieve->removeMultiples(nums, currentPrime);
+
+    int convertedPrime = htonl(currentPrime);
+    //printf("Sending Current Prime: %d\n", currentPrime);
+    sent = send(sockfd, &convertedPrime, sizeof(int), 0);
+
+    totalSent = 0;
+
+    char *buffer= new char[nums.size()];
+    //bzero(buffer, len);
+    std::copy(nums.begin(), nums.end(), buffer);
+    int bytesLeft = len;
+    
+    // ******************************** Sending list of numbers to server *************************
+    //printf("Sending numbers to server!\n");
+    //sieve->printRemainingPrimes(nums, 0);
+    while(totalSent < len) {
+      //printf("Sending data, totalSent: %d\n", totalSent);
+      sent = send(sockfd, buffer+totalSent, bytesLeft, 0);
+      if(sent < 0){
+        std::cout << "Error writing to socket" << std::endl;
+      } else {
+        totalSent += sent;
+        bytesLeft -= sent;
+      }
+    }
+    std::cout << "Sent: " << std::endl;
+    sieve->printList(nums, 0);
+    std::cout << std::endl << std::endl;
+  }
+
+  // Clean up
+  delete[] buff;
+  // Print Information
+  std::cout << "Finished!" << std::endl;
+  std::cout << "Total Packet Size: " << totalPacketSize << " bytes" << std::endl;
+  std::cout << "Number of packets sent: " << numPackets << std::endl;
+  std::cout << "Total elapsed time: " << std::endl//time << 
+  std::cout << "Throughput (Mbps): " << throughput << std::endl;
+  std::cout << "md5sum: " << md5 << std::endl;
+  
+  // Close and exit
+  close(sockfd);
+  exit(1);
+}
