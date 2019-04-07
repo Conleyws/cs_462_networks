@@ -32,9 +32,9 @@ int main(int argc, char **argv) {
     } catch (int e) {
       printf("Invalid input type; you must use a number\n");
     }    
+    hasPicked = true;
   }
-  
-  if (option == 2) {
+  if (to_string(option) == "2") {
     hasPicked = false;
     std::cout << "Choose a networking protocol:" << std::endl << "[1] Stop and Wait" << std::endl << "[2] Go Back N?" << std::endl << "[3] Selective Repeat?" << std::endl;
     // Loop until a valid option is input.
@@ -101,8 +101,12 @@ int main(int argc, char **argv) {
       std::cout << "Error opening file. Try Again!" << std::endl;
     }
   }
-  
-  
+  // Size of file to be send 
+  inputFile.seekg(0, inputFile.end);
+  int fileSize = inputFile.tellg();
+  inputFile.seekg(0, inputFile.beg);
+  std::cout << "Size of file: " << fileSize << std::endl;
+
   // Socket setup
   int sockfd;
   struct sockaddr_in serv_addr;
@@ -111,7 +115,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "ERROR opening socket\n");
     exit(1);
   }
-
   int portno = atoi(argv[1]);
   memset(&serv_addr, '0', sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
@@ -122,7 +125,6 @@ int main(int argc, char **argv) {
     server = gethostbyname("thing1.cs.uwec.edu");
 
     if(server == NULL) {
-      printf("ERROR, no such host\n");
       std::cout << "ERROR, no such host!" << std::endl;
       exit(1);
     }
@@ -144,7 +146,8 @@ int main(int argc, char **argv) {
   int totalSent = 0;
   std::vector<char> nums;
   
-  // Length to expect
+  // Size to send
+  // Size of file
   int len = nums.size() + 1;
   int convertedLen = htonl(len);
   char *buff = new char[len];
@@ -231,7 +234,6 @@ int main(int argc, char **argv) {
         bytesLeft -= sent;
       }
     }
- 
     std::cout << std::endl << std::endl;
   }
 
