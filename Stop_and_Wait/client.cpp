@@ -7,22 +7,22 @@ int main(int argc, char **argv) {
   bool hasPicked = false;
   
   // Statistics
-  long totalPacketSize = 0;
+  int totalPacketSize = 0;
   int totalTime = 0;
-  long numAcks = 0;
+  int numAcks = 0;
   double rttTime = 0.0;
-  long throughput = 0;
-  long md5 = 0;
+  int throughput = 0;
+  int md5 = 0;
 
   // File
   string fileName;
   ifstream inputFile;
 
   // Input Parameters
-  long packetSize;
-  long maxSequence;
-  long numPackets = 0;
-  long sequenceNumber = 0;
+  int packetSize;
+  int maxSequence;
+  int numPackets = 0;
+  int sequenceNumber = 0;
 
   std::cout << "[1] Use Defaults" << std::endl << "[2] Customize Options" << std::endl;
   
@@ -83,6 +83,8 @@ int main(int argc, char **argv) {
     }
   } else {
     std::cout << "Using default values" << std::endl;
+    packetSize = 1024;
+    maxSequence = 8;
   }
   
   // Get file location
@@ -149,18 +151,12 @@ int main(int argc, char **argv) {
   // Size to send
   // Size of file
   int len = nums.size() + 1;
-  int convertedLen = htonl(len);
+  //int convertedLen = htonl(len);
+  int convertedPacketSize = htonl(packetSize);
   char *buff = new char[len];
-  // Send the amount the client should expect to receive
-  printf("Sending Total Length: %d\n", len);
-  sent = send(sockfd, &convertedLen, sizeof(int), 0);
-  if (sent < 0) {
-    perror("Error sending expected size");
-    exit(0);
-  }
-  
-  printf("Sending Packet Size: %d\n", len);
-  sent = send(sockfd, &packetSize, sizeof(int), 0);
+  // Send the amount the client should expect to receive  
+  printf("Sending Packet Size: %d\n", packetSize);
+  sent = send(sockfd, &convertedPacketSize, sizeof(int), 0);
   if (sent < 0) {
     perror("Error sending packet size");
     exit(0);
@@ -172,7 +168,7 @@ int main(int argc, char **argv) {
 
   while (!finishedSending) {
     // Clear buffer 
-    bzero(buff,len);
+    bzero(buff,packetSize);
     
     // Send Packet
     
@@ -189,7 +185,7 @@ int main(int argc, char **argv) {
     received = 0;
     nums.clear();
       
-    received += recv(sockfd, buff, len, 0);
+    received += recv(sockfd, buff, packetSize, 0);
     if(received < 0){
       perror("Error receieving data.\n");
     } else if (received == 0) {
@@ -197,10 +193,10 @@ int main(int argc, char **argv) {
       close(sockfd);
       exit(1);
     }
-
+    std::cout << "Received ACK: " << buff[0] << std::endl;
     // Need to split packet between header and body
     // Make sure ack is for correct packet
-    nums.insert(nums.end(), buff, buff + strlen(buff));
+    //nums.insert(nums.end(), buff, buff + strlen(buff));
     bzero(buff, len);
     
     
