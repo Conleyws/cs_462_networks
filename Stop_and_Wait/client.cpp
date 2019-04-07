@@ -1,5 +1,5 @@
 #include "client.h"
-#include "Sieve.h"
+using namespace std;
 int main(int argc, char **argv) {
 
   // Picking
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
     memcpy(&serv_addr.sin_addr.s_addr, server->h_addr, server->h_length);
     unsigned int seconds = 3;
     while (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-      std::cout << "Error connecting to " << serv_addr << " on socket " << sockfd << std::endl;
+      //std::cout << "Error connecting to " << serv_addr << " on socket " << sockfd << std::endl;
       sleep(seconds); 
     }
   }catch (const std::exception &exc){
@@ -139,30 +139,32 @@ int main(int argc, char **argv) {
   }
 
   // ****************************** Sending the total size to expect ******************************
+  int received = 0;
+  int sent = 0;
+  int totalSent = 0;
+  std::vector<char> nums;
+  
   // Length to expect
   int len = nums.size() + 1;
   int convertedLen = htonl(len);
+  char *buff = new char[len];
   // Send the amount the client should expect to receive
   printf("Sending Total Length: %d\n", len);
-  sent = send(newsockfd, &convertedLen, sizeof(int), 0);
+  sent = send(sockfd, &convertedLen, sizeof(int), 0);
   if (sent < 0) {
     perror("Error sending expected size");
     exit(0);
   }
   
   printf("Sending Packet Size: %d\n", len);
-  sent = send(newsockfd, &packetSize, sizeof(int), 0);
+  sent = send(sockfd, &packetSize, sizeof(int), 0);
   if (sent < 0) {
     perror("Error sending packet size");
     exit(0);
   }
-  
+ 
+  bool finishedSending = false;
 
-  int receivedPrime = 0;
-  int sent = 0;
-  int totalSent = 0;
-  std::vector<char> nums;
-  char *buff = new char[len];
   // ********************************** Begin Loop of receiving and sending information *********************
 
   while (!finishedSending) {
@@ -202,18 +204,12 @@ int main(int argc, char **argv) {
     
     // Print received list
     std::cout << "Recieved: " << std::endl;
-    sieve->printList(nums, 0);
-    // Print Prime
-    std::cout << "Current Prime: " << currentPrime << std::endl;
-    // Find next prime
-    currentPrime = sieve->findNextPrime(nums, currentPrime); 
-    // Removing multiples
-    //printf("Removing Multiples for prime: %d\n", currentPrime);
-    nums = sieve->removeMultiples(nums, currentPrime);
 
-    int convertedPrime = htonl(currentPrime);
+    //int convertedPrime = htonl(currentPrime);
     //printf("Sending Current Prime: %d\n", currentPrime);
-    sent = send(sockfd, &convertedPrime, sizeof(int), 0);
+    
+    std::cout << "Sending Packet with sequence number: " << std::endl; // Sequence Number
+    //sent = send(sockfd, packet, sizeof(int), 0);
 
     totalSent = 0;
 
@@ -235,8 +231,7 @@ int main(int argc, char **argv) {
         bytesLeft -= sent;
       }
     }
-    std::cout << "Sent: " << std::endl;
-    sieve->printList(nums, 0);
+ 
     std::cout << std::endl << std::endl;
   }
 
@@ -246,7 +241,7 @@ int main(int argc, char **argv) {
   std::cout << "Finished!" << std::endl;
   std::cout << "Total Packet Size: " << totalPacketSize << " bytes" << std::endl;
   std::cout << "Number of packets sent: " << numPackets << std::endl;
-  std::cout << "Total elapsed time: " << std::endl//time << 
+  std::cout << "Total elapsed time: " << std::endl; //time << 
   std::cout << "Throughput (Mbps): " << throughput << std::endl;
   std::cout << "md5sum: " << md5 << std::endl;
   

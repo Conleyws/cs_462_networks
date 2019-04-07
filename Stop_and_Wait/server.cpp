@@ -1,6 +1,5 @@
 #include "server.h"
 
-
 int main(int argc, char **argv) {
   if (argc < 1){
     printf("You are missing an argument\n arg[0] = portno\n");
@@ -44,7 +43,7 @@ int main(int argc, char **argv) {
 
 
   int received = 0;
-  
+  string receivedLen; 
   // ********************************** Receiving total length to expect **************************
   received = recv(sockfd, &receivedLen, sizeof(int), 0);
   //printf("Received: %d\n", received);
@@ -60,14 +59,12 @@ int main(int argc, char **argv) {
     std::cout << "Total length to expect on read: " << len << std::endl;
   }
   
-  // Convert prime using htonl
-  int convertedPrime;
-  int received = 0;
   int totalSent = 0;
+  bool finishedReceiveing = false;
   char *buff = new char[len];
   
-  // ********************************** Begin Loop of receiving and sending information ********************
-  while(currentPrime < sqrt(len*2)) {
+  // ********************************** Begin Loop of receiving packets and sending Acks ********************
+  while(!finishedReceiving) {
     // Send the current prime to the client
     convertedPrime = htonl(currentPrime);
     //printf("Sending Current Prime: %d\n", currentPrime);

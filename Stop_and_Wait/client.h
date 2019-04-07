@@ -6,3 +6,8 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string.h>
+#include <netdb.h>

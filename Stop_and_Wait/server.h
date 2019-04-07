@@ -11,7 +11,6 @@
 #include <vector>
 #include <unistd.h>
 
-#include "Sieve.h"
 
 class server {
   public:
@@ -19,6 +18,6 @@ class server {
 
   private:
     std::list<int> findPrimes(std::list<int>);
-    std::list<int> currentPrimes;    
+    std::list<int> currentPrimes;
     int currentPrime;
 };
