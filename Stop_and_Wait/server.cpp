@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   }
 
 
-  int portno = atoi(argv[2]);
+  int portno = atoi(argv[1]);
  
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
@@ -41,135 +41,92 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-
+  // Number of packets received in network byte order
+  int numPacketsReceived = 0;
+  // Number of packets received in host byte order
+  int numPackets = 0;
+  // Status code upon receiving anything
   int received = 0;
-  string receivedLen; 
-  // ********************************** Receiving total length to expect **************************
-  received = recv(sockfd, &receivedLen, sizeof(int), 0);
+  // Status code upon sending anything
+  int sent = 0;
+  // ********************************** Receiving total number of packets to expect **************************
+  received = recv(newsockfd, &numPacketsReceived, sizeof(int), 0);
   //printf("Received: %d\n", received);
   if (received < 0) {
-    perror("Error receieving prime.");
+    perror("Error receieving number of packets.");
   } else if (received == 0) {
     std::cout << "Socket closed on server end. Closing socket." << std::endl;
     close(sockfd);
     exit(1);
   } else {
     // Convert back to int
-    len=ntohl(receivedLen);
-    std::cout << "Total length to expect on read: " << len << std::endl;
+    numPackets=ntohl(numPacketsReceived);
+    std::cout << "Total number of packets to receive: " << numPackets << std::endl;
+  }
+  
+  // ********************************** Receiving packet body size to expect **************************
+  int packetSizeReceived = 0;
+  int packetSize = 0;
+  
+  received = recv(newsockfd, &packetSizeReceived, sizeof(int), 0);
+  if (received < 0) {
+    perror("Error receieving packet body size.");
+  } else if (received == 0) {
+    std::cout << "Socket closed on server end. Closing socket." << std::endl;
+    close(sockfd);
+    exit(1);
+  } else {
+    // Convert back to int
+    packetSize=ntohl(packetSizeReceived);
+    std::cout << "Total Packet Body Size: " << packetSize << std::endl;
   }
   
   int totalSent = 0;
-  bool finishedReceiveing = false;
-  char *buff = new char[len];
+  bool finishedReceiving = false;
+  char *buff = new char[packetSize];
+  std::vector<char> packet;
   
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
   while(!finishedReceiving) {
-    // Send the current prime to the client
-    convertedPrime = htonl(currentPrime);
-    //printf("Sending Current Prime: %d\n", currentPrime);
-    sent = send(newsockfd, &convertedPrime, sizeof(int), 0);
-    //sieve->printRemainingPrimes(nums, 0);
-    char *buffer= new char[nums.size()];
-    //bzero(buffer, len);
-    std::copy(nums.begin(), nums.end(), buffer);
-    int bytesLeft = len;
+   
+  //Loop
+    // Read in packet
+    // Check sequence #
+    // Get packet body and put to file or buffer?
+    //
+    // Send back ACK with sequence #
+  //End loop
+  //Write to file?
+    char *buffer= new char[packet.size()];
+    
+    // ******************************** Receiving Packet ************************
+    bzero(buff, packetSize);
+    received = 0;  
+    packet.clear();
 
-    // ******************************** Sending list of numbers to client ************************
-    totalSent = 0;
-    //printf("Sending list of numbers to client!\n");
-    //sieve->printRemainingPrimes(nums, 0);
-    while(totalSent < len) {
-      //printf("Sending data, totalSent: %d\n", totalSent);
-      sent = send(newsockfd, buffer+totalSent, bytesLeft, 0);
-        /*
-        if(sent < 0){
-          printf("Error writing to socket\n");
-        } else {
-        */
-      totalSent += sent;
-      bytesLeft -= sent;
-        //}
-    }
-    printf("Sent ");
-    sieve->printList(nums, 0);
-    printf("\n\n\n\n\n\n");
-    // ******************************** Receiving the current prime from client *******************
-    //printf("Receiving prime from client!\n");  
-    received = recv(newsockfd, &receivedPrime, sizeof(int), 0);
-  
-    if (received < 0) {
-      perror("Error receieving prime.");
+    received += recv(newsockfd, buff, packetSize, 0);
+    if(received < 0){
+      perror("Error receieving data.\n");
     } else if (received == 0) {
-      printf("Socket closed while retrieving current prim from client!\n");
+      printf("Socket closed while retrieving list of numbers from client!\n");
       close(newsockfd);
       exit(1);
     } else {
-      // Convert back to int
-      currentPrime=ntohl(receivedPrime);
-      if (currentPrime == -1) {
-        //close(newsockfd);
-      }else {
-      }
+      packet.insert(packet.end(), buff, buff + strlen(buff));
     }
-    primes.push_back(currentPrime);
+    bzero(buff, packetSize);
 
-    // ****************************** Receiving list of numbers from client *********************
-    //printf("Receiving list of numbers from client!\n");
-    bzero(buff,len);
-    received = 0;  
-    nums.clear();
-    while(received < len) {
-      //received += recv(newsockfd, &buff, len, 0);
-      received += recv(newsockfd, buff, len, 0);
-      if(received < 0){
-        perror("Error receieving data.\n");
-      } else if (received == 0) {
-        printf("Socket closed while retrieving list of numbers from client!\n");
-        close(newsockfd);
-        exit(1);
-      } else {
-        nums.insert(nums.end(), buff, buff + strlen(buff));
-        //sieve->printList(nums, 0);
-      }
-      bzero(buff, len);
-    }
-
-    //printf("Total Received: %d, Total Expected: %d\n", received, len);
-    //std::vector<char> readNums(buff, buff+len);
-    //nums = readNums;
-    printf("Received: ");
-    sieve->printList(nums, 0);
+    std::cout << "Recieved Packet with sequence number: " << std::endl; // Sequence number 
     
-    
-    //printf("Prime: %d\n", currentPrime);
-    printf("Prime: ");
-    for (std::list<int>::iterator it=primes.begin(); it != primes.end(); ++it) {
-      printf("%d, ", *it);
-    }
-    printf("\n");
+    // Send ACK
 
-    //sieve->printRemainingPrimes(nums, 0);
-    // Find the next prime
-    currentPrime = sieve->findNextPrime(nums, currentPrime);
-    primes.push_back(currentPrime);
-    //printf("Next prime: %d\n", currentPrime);
-    // Remove multiples using 
-    nums = sieve->removeMultiples(nums, currentPrime);
-    //printf("Removed multiples for prime: %d\n", currentPrime);
   }
 
   // Clean up
   delete[] buff;
   //delete[] buffer;
   printf("\nFinished\n");
-  
-  while(!primes.empty()) {
-    printf("%d, ", primes.front());
-    primes.pop_front();
-  }
-  sieve->printRemainingPrimes(nums, currentPrime);
- 
+   
   printf("\n");
   printf("Closing socket\n");
   close(newsockfd);
