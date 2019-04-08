@@ -164,7 +164,6 @@ int main(int argc, char **argv) {
   int sent = 0;
   std::vector<char> nums; 
   
-  std::cout << "bodySize : " << bodySize << std::endl;
   numPackets = (fileSize+bodySize-1) / bodySize;
   int convertedFileSize = htonl(fileSize);
   // Send the file size 
@@ -188,22 +187,26 @@ int main(int argc, char **argv) {
   char dataToSend[bodySize];
   strcat(dataToSend, header);
   strcat(dataToSend, buff);
-  std::cout << "Sending: " << dataToSend << std::endl;
+  //std::cout << "Sending: " << dataToSend << std::endl;
+  std::cout << "Sending data..." << std::endl;
   // Send the amount the client should expect to receive  
   sent = send(sockfd, &dataToSend, packetSize, 0);
   if (sent < 0) {
     perror("Error sending packet size");
     exit(0);
   }
+  int receivedData;
   // ********************************** Begin Loop of receiving and sending information *********************
-
   while (currentPacket < numPackets) {
     // Clear buffer 
     bzero(buff,bodySize);
+    receivedData = -1;
     // ******************************** Receiving Ack *********************
     received = 0;
     //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
-    received += recv(sockfd, buff, packetSize, 0);
+    std::cout << "Waiting for ACK" << std::endl;
+    received += recv(sockfd, receivedData, sizeof(int), 0);
+    std::cout << "Ack received" << std::endl;
     if(received < 0){
       perror("Error receieving data.\n");
     } else if (received == 0) {
@@ -211,9 +214,9 @@ int main(int argc, char **argv) {
       close(sockfd);
       exit(1);
     }
-    std::cout << "Received ACK: " << buff[5] << std::endl;
+    std::cout << "Received ACK: " << receivedData << std::endl;
     // Make sure ack is for correct packet
-    if((int)buff[5] == currentAck){
+    if(receivedData == currentAck){
     // Correct ack
       currentAck++;
       if(sequenceNumber == maxSequence){
@@ -235,7 +238,7 @@ int main(int argc, char **argv) {
       dataGot++;
     }  
     // Update header (sequence number)
-    
+
     // Append to data and header to dataToSend variable
     strcat(dataToSend, header);
     strcat(dataToSend, buff);
