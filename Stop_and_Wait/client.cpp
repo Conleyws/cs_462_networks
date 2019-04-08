@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
     std::cerr << exc.what();
   }
 
-  // ****************************** Sending the total size to expect ******************************
+  // ****************************** Sending file size ******************************
   int received = 0;
   int sent = 0;
   std::vector<char> nums; 
@@ -173,7 +173,18 @@ int main(int argc, char **argv) {
     perror("Error sending file size");
     exit(0);
   }
+  
+  // ****************************** Sending body size ******************************
+  int convertedMaxSequence = htonl(maxSequence);
+  // Send the max sequence 
+  std::cout << "Sending max sequence: " << maxSequence << std::endl;
+  sent = send(sockfd, &convertedMaxSequence, sizeof(int), 0);
+  if (sent < 0) {
+    perror("Error sending max sequence");
+    exit(0);
+  }
 
+  // ****************************** Sending sequence number range ******************************
   int convertedPacketSize = htonl(bodySize);
   // Send the packet size 
   std::cout << "Sending body size: " << bodySize << std::endl;
@@ -182,7 +193,7 @@ int main(int argc, char **argv) {
     perror("Error sending body size");
     exit(0);
   }
-
+  
   // Add header information
   char dataToSend[bodySize];
   strcat(dataToSend, header);
