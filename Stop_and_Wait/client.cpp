@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
     perror("Error sending packet size");
     exit(0);
   }
-  int receivedData;
+  char receivedData;
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
     // Clear buffer 
@@ -215,9 +215,7 @@ int main(int argc, char **argv) {
     // ******************************** Receiving Ack *********************
     received = 0;
     //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
-    std::cout << "Waiting for ACK" << std::endl;
-    received += recv(sockfd, receivedData, sizeof(int), 0);
-    std::cout << "Ack received" << std::endl;
+    received += recv(sockfd, &receivedData, sizeof(char), 0);
     if(received < 0){
       perror("Error receieving data.\n");
     } else if (received == 0) {
@@ -225,9 +223,9 @@ int main(int argc, char **argv) {
       close(sockfd);
       exit(1);
     }
-    std::cout << "Received ACK: " << receivedData << std::endl;
+    std::cout << "Received ACK: " << (int)receivedData << std::endl;
     // Make sure ack is for correct packet
-    if(receivedData == currentAck){
+    if((int)receivedData == currentAck){
     // Correct ack
       currentAck++;
       if(sequenceNumber == maxSequence){
@@ -238,7 +236,8 @@ int main(int argc, char **argv) {
       bzero(dataToSend,packetSize);
     } else {
     // Not correct ack, send packet again
-      std::cout << "Incorrect ack, sending packet again" << std::endl;  
+      std::cout << "Incorrect ack, sending packet again" << std::endl;
+      sleep(1); 
     }
     // TODO Send next packet 
     
