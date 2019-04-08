@@ -244,12 +244,11 @@ int main(int argc, char **argv) {
     strcat(dataToSend, header);
     strcat(dataToSend, buff);
     std::cout << "Sending Packet with sequence number: " << sequenceNumber << std::endl; // Sequence Number
-    //sent = send(sockfd, &dataToSend, packetSize, 0);
+    sent = send(sockfd, &dataToSend, packetSize, 0);
     if (send < 0){
       perror("Error sending packet");
       exit(0);  
     }
-
   }
 
   // Clean up
