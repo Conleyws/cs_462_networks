@@ -24,6 +24,9 @@ int main(int argc, char **argv) {
   int numPackets = 0;
   int sequenceNumber = 0;
 
+  // Initial variables
+  int currentAck = 0;
+
   std::cout << "[1] Use Defaults" << std::endl << "[2] Customize Options" << std::endl;
   
   while(!hasPicked) {
@@ -189,14 +192,12 @@ int main(int argc, char **argv) {
     
 
 
-    // Listen for Ack
     // If timeout - resend packet ? Don't increase sequence #
     // Use total sequence # to get body for each packet
     
     
 
     // ******************************** Receiving Ack *********************
-    //printf("Receiving numbers from server!\n");
     received = 0;
     nums.clear();
       
@@ -210,7 +211,15 @@ int main(int argc, char **argv) {
     }
     std::cout << "Received ACK: " << buff[0] << std::endl;
     // Make sure ack is for correct packet
-    
+    if((int)buff[0] == currentAck){
+    // Correct ack
+      currentAck++;
+    } else {
+    // Not correct ack, send packet again
+  
+    }
+
+
     bzero(buff, len);
     // TODO Send next packet 
     std::cout << "Sending Packet with sequence number: " << std::endl; // Sequence Number
