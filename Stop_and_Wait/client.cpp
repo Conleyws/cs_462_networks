@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
   int bodySize = 0;
   // Initial variables
   int currentAck = 0;
+  int currentPacket = 0;
 
   std::cout << "[1] Use Defaults" << std::endl << "[2] Customize Options" << std::endl;
   
@@ -114,9 +115,7 @@ int main(int argc, char **argv) {
   inputFile.seekg(0, inputFile.end);
   int fileSize = inputFile.tellg();
   inputFile.seekg(0, inputFile.beg);
-  std::cout << "Size of file: " << fileSize << std::endl;
-  int packetsToSend = (fileSize / packetSize) + 1;
-  std::cout << "Packets to send: " << packetsToSend << std::endl;
+  std::cout << "Size of file to send: " << fileSize << std::endl;
   // Get first set of data from file
   char *buff = new char[packetSize];
   int dataGot = 0;
@@ -166,7 +165,7 @@ int main(int argc, char **argv) {
   std::vector<char> nums; 
   
   std::cout << "packetSize : " << packetSize << std::endl;
-  numPackets = fileSize / packetSize;
+  numPackets = (fileSize+bodySize-1) / bodySize;
   int convertedFileSize = htonl(fileSize);
   // Send the file size 
   std::cout << "Sending file size: " << fileSize << std::endl;
@@ -196,17 +195,13 @@ int main(int argc, char **argv) {
     perror("Error sending packet size");
     exit(0);
   }
- 
-  bool finishedSending = false;
-
   // ********************************** Begin Loop of receiving and sending information *********************
 
-  while (!finishedSending) {
+  while (currentPacket < numPackets) {
     // Clear buffer 
     bzero(buff,packetSize);
     // ******************************** Receiving Ack *********************
-    received = 0;
-      
+    received = 0;  
     received += recv(sockfd, buff, packetSize, 0);
     if(received < 0){
       perror("Error receieving data.\n");
@@ -247,7 +242,8 @@ int main(int argc, char **argv) {
     sent = send(sockfd, &dataToSend, packetSize, 0);
     if (send < 0){
       perror("Error sending packet");
-      exit(0);  
+      exit(0);
+    currentPacket++;  
     }
   }
 
