@@ -104,11 +104,7 @@ int main(int argc, char **argv) {
     }
   }
   //TODO Generate header data
-
-
-
-
-
+  char header[5] = "0000";
 
 
   // Size of file to be send and number of packets 
@@ -118,14 +114,12 @@ int main(int argc, char **argv) {
   std::cout << "Size of file: " << fileSize << std::endl;
   int packetsToSend = (fileSize / packetSize) + 1;
   std::cout << "Packets to send: " << packetsToSend << std::endl;
-  int convertedPacketSize = htonl(packetSize);
   // Get first set of data from file
   char *buff = new char[packetSize];
   int dataGot = 0;
   char c;
   while(dataGot < packetSize){
     c = inputFile.get();
-    std::cout << c;
     buff[dataGot] = c;
     dataGot++;
   }
@@ -170,8 +164,12 @@ int main(int argc, char **argv) {
   std::vector<char> nums; 
   // Size to send
   int len = nums.size() + 1;
-  std::cout << "Sending: " << buff << std::endl;
 
+  // Add header information
+  char dataToSend[packetSize+4];
+  strcat(dataToSend, header);
+  strcat(dataToSend, buff);
+  std::cout << "Sending: " << dataToSend << std::endl;
   // Send the amount the client should expect to receive  
   sent = send(sockfd, &buff, packetSize, 0);
   if (sent < 0) {
