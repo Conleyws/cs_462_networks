@@ -53,10 +53,10 @@ int main(int argc, char **argv) {
       case 1:
         std::cout << "Running Stop and Wait" << std::endl << "Enter packet size in bits: " << std::endl;
         try{
-          std::cin >> packetSize; 
-          while (packetSize < 1){
+          std::cin >> bodySize; 
+          while (bodySize < 1){
             std::cout << "Error: You must choose a number greater than 0" << std::endl;
-            std::cin >> packetSize;
+            std::cin >> bodySize;
           }
         } catch (int e) {
           std::cout << "Invalid input for size of packet!" << std::endl;
@@ -87,10 +87,10 @@ int main(int argc, char **argv) {
     }
   } else {
     std::cout << "Using default values" << std::endl;
-    packetSize = 1024;
+    bodySize = 1024;
     maxSequence = 8;
   }
-  bodySize = packetSize+4;
+  packetSize = bodySize+4;
   // Get file location
   hasPicked = false;
   std::cout << "Input file name:" << std::endl;
@@ -117,10 +117,10 @@ int main(int argc, char **argv) {
   inputFile.seekg(0, inputFile.beg);
   std::cout << "Size of file to send: " << fileSize << std::endl;
   // Get first set of data from file
-  char *buff = new char[packetSize];
+  char *buff = new char[bodySize];
   int dataGot = 0;
   char c;
-  while(dataGot < packetSize){
+  while(dataGot < bodySize){
     c = inputFile.get();
     buff[dataGot] = c;
     dataGot++;
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
   int sent = 0;
   std::vector<char> nums; 
   
-  std::cout << "packetSize : " << packetSize << std::endl;
+  std::cout << "bodySize : " << bodySize << std::endl;
   numPackets = (fileSize+bodySize-1) / bodySize;
   int convertedFileSize = htonl(fileSize);
   // Send the file size 
@@ -175,12 +175,12 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  int convertedPacketSize = htonl(packetSize);
+  int convertedPacketSize = htonl(bodySize);
   // Send the packet size 
-  std::cout << "Sending packet size: " << packetSize << std::endl;
+  std::cout << "Sending body size: " << bodySize << std::endl;
   sent = send(sockfd, &convertedPacketSize, sizeof(int), 0);
   if (sent < 0) {
-    perror("Error sending packet size");
+    perror("Error sending body size");
     exit(0);
   }
 
@@ -199,9 +199,10 @@ int main(int argc, char **argv) {
 
   while (currentPacket < numPackets) {
     // Clear buffer 
-    bzero(buff,packetSize);
+    bzero(buff,bodySize);
     // ******************************** Receiving Ack *********************
-    received = 0;  
+    received = 0;
+    //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
     received += recv(sockfd, buff, packetSize, 0);
     if(received < 0){
       perror("Error receieving data.\n");
@@ -210,9 +211,9 @@ int main(int argc, char **argv) {
       close(sockfd);
       exit(1);
     }
-    std::cout << "Received ACK: " << buff[0] << std::endl;
+    std::cout << "Received ACK: " << buff[5] << std::endl;
     // Make sure ack is for correct packet
-    if((int)buff[0] == currentAck){
+    if((int)buff[5] == currentAck){
     // Correct ack
       currentAck++;
       if(sequenceNumber == maxSequence){
@@ -228,7 +229,7 @@ int main(int argc, char **argv) {
     // TODO Send next packet 
     
     // Get data from file and add to buff
-    while(dataGot < packetSize){
+    while(dataGot < bodySize){
       c = inputFile.get();
       buff[dataGot] = c;
       dataGot++;
