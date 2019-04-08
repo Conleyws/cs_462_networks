@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   int maxSequence;
   int numPackets = 0;
   int sequenceNumber = 0;
-
+  int bodySize = 0;
   // Initial variables
   int currentAck = 0;
 
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     packetSize = 1024;
     maxSequence = 8;
   }
-  
+  bodySize = packetSize+4;
   // Get file location
   hasPicked = false;
   std::cout << "Input file name:" << std::endl;
@@ -163,7 +163,6 @@ int main(int argc, char **argv) {
   // ****************************** Sending the total size to expect ******************************
   int received = 0;
   int sent = 0;
-  int totalSent = 0;
   std::vector<char> nums; 
   
   std::cout << "packetSize : " << packetSize << std::endl;
@@ -187,12 +186,12 @@ int main(int argc, char **argv) {
   }
 
   // Add header information
-  char dataToSend[packetSize+4];
+  char dataToSend[bodySize];
   strcat(dataToSend, header);
   strcat(dataToSend, buff);
   std::cout << "Sending: " << dataToSend << std::endl;
   // Send the amount the client should expect to receive  
-  sent = send(sockfd, &buff, packetSize, 0);
+  sent = send(sockfd, &dataToSend, packetSize, 0);
   if (sent < 0) {
     perror("Error sending packet size");
     exit(0);
@@ -205,16 +204,6 @@ int main(int argc, char **argv) {
   while (!finishedSending) {
     // Clear buffer 
     bzero(buff,packetSize);
-    
-    // Send Packet
-    
-
-
-    // If timeout - resend packet ? Don't increase sequence #
-    // Use total sequence # to get body for each packet
-    
-    
-
     // ******************************** Receiving Ack *********************
     received = 0;
       
@@ -231,39 +220,36 @@ int main(int argc, char **argv) {
     if((int)buff[0] == currentAck){
     // Correct ack
       currentAck++;
+      if(sequenceNumber == maxSequence){
+        sequenceNumber = 0;
+      } else { 
+        sequenceNumber++;
+      }
+      bzero(dataToSend,packetSize);
     } else {
     // Not correct ack, send packet again
-  
+      std::cout << "Incorrect ack, sending packet again" << std::endl;  
     }
-
-
     // TODO Send next packet 
-    std::cout << "Sending Packet with sequence number: " << std::endl; // Sequence Number
-    //sent = send(sockfd, packet, sizeof(int), 0);
-
-    totalSent = 0;
-
-    //char *buffer= new char[nums.size()];
-    //bzero(buffer, len);
-    //std::copy(nums.begin(), nums.end(), buffer);
-    //int bytesLeft = len;
     
-    // ******************************** Sending list of numbers to server *************************
-    //printf("Sending numbers to server!\n");
-    //sieve->printRemainingPrimes(nums, 0);
-    /*
-    while(totalSent < len) {
-      //printf("Sending data, totalSent: %d\n", totalSent);
-      sent = send(sockfd, buffer+totalSent, bytesLeft, 0);
-      if(sent < 0){
-        std::cout << "Error writing to socket" << std::endl;
-      } else {
-        totalSent += sent;
-        bytesLeft -= sent;
-      }
+    // Get data from file and add to buff
+    while(dataGot < packetSize){
+      c = inputFile.get();
+      buff[dataGot] = c;
+      dataGot++;
+    }  
+    // Update header (sequence number)
+    
+    // Append to data and header to dataToSend variable
+    strcat(dataToSend, header);
+    strcat(dataToSend, buff);
+    std::cout << "Sending Packet with sequence number: " << sequenceNumber << std::endl; // Sequence Number
+    //sent = send(sockfd, &dataToSend, packetSize, 0);
+    if (send < 0){
+      perror("Error sending packet");
+      exit(0);  
     }
-    */
-    std::cout << std::endl << std::endl;
+
   }
 
   // Clean up
