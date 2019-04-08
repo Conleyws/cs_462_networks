@@ -42,16 +42,17 @@ int main(int argc, char **argv) {
   }
 
   // Number of packets received in network byte order
-  int numPacketsReceived = 0;
+  int fileSize = 0;
+  int fileSizeReceived = 0;
   // Number of packets received in host byte order
   int numPackets = 0;
   // Status code upon receiving anything
   int received = 0;
   // Status code upon sending anything
   int sent = 0;
-  // ********************************** Receiving total number of packets to expect **************************
-  received = recv(newsockfd, &numPacketsReceived, sizeof(int), 0);
-  //printf("Received: %d\n", received);
+
+  // ********************************** Receiving file size to expect **************************
+  received = recv(newsockfd, &fileSizeReceived, sizeof(int), 0);
   if (received < 0) {
     perror("Error receieving number of packets.");
   } else if (received == 0) {
@@ -60,8 +61,8 @@ int main(int argc, char **argv) {
     exit(1);
   } else {
     // Convert back to int
-    numPackets=ntohl(numPacketsReceived);
-    std::cout << "Total number of packets to receive: " << numPackets << std::endl;
+    fileSize=ntohl(fileSizeReceived);
+    std::cout << "File Size: " << fileSize << std::endl;
   }
   
   // ********************************** Receiving packet body size to expect **************************
@@ -80,11 +81,15 @@ int main(int argc, char **argv) {
     packetSize=ntohl(packetSizeReceived);
     std::cout << "Total Packet Body Size: " << packetSize << std::endl;
   }
-  
+
+  numPackets = (fileSize + packetSize - 1) / packetSize;
+  std::cout << "Total number of packets: " << numPackets << std::endl;
+
   int totalSent = 0;
   bool finishedReceiving = false;
   char *buff = new char[packetSize];
   std::vector<char> packet;
+  int sequenceNumber = 0;
   
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
   while(!finishedReceiving) {
@@ -99,6 +104,7 @@ int main(int argc, char **argv) {
   //Write to file?
     char *buffer= new char[packet.size()];
     
+    std::cout << "Expected Sequence Number: " << sequenceNumber << std::endl;
     // ******************************** Receiving Packet ************************
     bzero(buff, packetSize);
     received = 0;  
@@ -116,10 +122,18 @@ int main(int argc, char **argv) {
     }
     bzero(buff, packetSize);
 
-    std::cout << "Recieved Packet with sequence number: " << std::endl; // Sequence number 
-    
-    // Send ACK
+    std::cout << "Packet : " << sequenceNumber << " received." << std::endl; // Sequence number 
 
+    // Send ACK
+    /*
+    sent = send(sockfd, &ack, sizeof(int), 0);
+    if (sent < 0) {
+      perror("Error sending expected size");
+      exit(0);
+    }
+    */
+    std::cout << "Ack " << sequenceNumber << " sent." << std::endl; //
+    
   }
 
   // Clean up

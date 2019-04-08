@@ -165,8 +165,26 @@ int main(int argc, char **argv) {
   int sent = 0;
   int totalSent = 0;
   std::vector<char> nums; 
-  // Size to send
-  int len = nums.size() + 1;
+  
+  std::cout << "packetSize : " << packetSize << std::endl;
+  numPackets = fileSize / packetSize;
+  int convertedFileSize = htonl(fileSize);
+  // Send the file size 
+  std::cout << "Sending file size: " << fileSize << std::endl;
+  sent = send(sockfd, &convertedFileSize, sizeof(int), 0);
+  if (sent < 0) {
+    perror("Error sending file size");
+    exit(0);
+  }
+
+  int convertedPacketSize = htonl(packetSize);
+  // Send the packet size 
+  std::cout << "Sending packet size: " << packetSize << std::endl;
+  sent = send(sockfd, &convertedPacketSize, sizeof(int), 0);
+  if (sent < 0) {
+    perror("Error sending packet size");
+    exit(0);
+  }
 
   // Add header information
   char dataToSend[packetSize+4];
@@ -199,7 +217,6 @@ int main(int argc, char **argv) {
 
     // ******************************** Receiving Ack *********************
     received = 0;
-    nums.clear();
       
     received += recv(sockfd, buff, packetSize, 0);
     if(received < 0){
@@ -220,21 +237,21 @@ int main(int argc, char **argv) {
     }
 
 
-    bzero(buff, len);
     // TODO Send next packet 
     std::cout << "Sending Packet with sequence number: " << std::endl; // Sequence Number
     //sent = send(sockfd, packet, sizeof(int), 0);
 
     totalSent = 0;
 
-    char *buffer= new char[nums.size()];
+    //char *buffer= new char[nums.size()];
     //bzero(buffer, len);
-    std::copy(nums.begin(), nums.end(), buffer);
-    int bytesLeft = len;
+    //std::copy(nums.begin(), nums.end(), buffer);
+    //int bytesLeft = len;
     
     // ******************************** Sending list of numbers to server *************************
     //printf("Sending numbers to server!\n");
     //sieve->printRemainingPrimes(nums, 0);
+    /*
     while(totalSent < len) {
       //printf("Sending data, totalSent: %d\n", totalSent);
       sent = send(sockfd, buffer+totalSent, bytesLeft, 0);
@@ -245,6 +262,7 @@ int main(int argc, char **argv) {
         bytesLeft -= sent;
       }
     }
+    */
     std::cout << std::endl << std::endl;
   }
 
