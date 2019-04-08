@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
     }
   }catch (const std::exception &exc){
     // catch anything thrown within try block that derives from std::exception
-    std::cout << "Error connecting to server\n";
+    std::cout << "Error connecting to server" << std::endl;
     std::cerr << exc.what();
   }
 
@@ -149,14 +149,22 @@ int main(int argc, char **argv) {
   std::vector<char> nums;
   
   // Size to send
-  // Size of file
   int len = nums.size() + 1;
-  //int convertedLen = htonl(len);
   int convertedPacketSize = htonl(packetSize);
-  char *buff = new char[len];
+  char *buff = new char[packetSize];
+  int dataGot = 0;
+  char c;
+  while(dataGot < packetSize){
+    c = inputFile.get();
+    std::cout << c << endl;
+    buff[dataGot] = c;
+    dataGot++;
+  }
+    std::cout << buff << std::endl;
+
   // Send the amount the client should expect to receive  
   printf("Sending Packet Size: %d\n", packetSize);
-  sent = send(sockfd, &convertedPacketSize, sizeof(int), 0);
+  sent = send(sockfd, &buff, sizeof(int), 0);
   if (sent < 0) {
     perror("Error sending packet size");
     exit(0);
@@ -194,19 +202,10 @@ int main(int argc, char **argv) {
       exit(1);
     }
     std::cout << "Received ACK: " << buff[0] << std::endl;
-    // Need to split packet between header and body
     // Make sure ack is for correct packet
-    //nums.insert(nums.end(), buff, buff + strlen(buff));
+    
     bzero(buff, len);
-    
-    
-    
-    // Print received list
-    std::cout << "Recieved: " << std::endl;
-
-    //int convertedPrime = htonl(currentPrime);
-    //printf("Sending Current Prime: %d\n", currentPrime);
-    
+    // TODO Send next packet 
     std::cout << "Sending Packet with sequence number: " << std::endl; // Sequence Number
     //sent = send(sockfd, packet, sizeof(int), 0);
 
