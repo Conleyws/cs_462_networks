@@ -1,5 +1,6 @@
 #include "client.h"
 using namespace std;
+using namespace std::chrono;
 int main(int argc, char **argv) {
 
   // Picking
@@ -10,7 +11,7 @@ int main(int argc, char **argv) {
   int totalPacketSize = 0;
   int totalTime = 0;
   int numAcks = 0;
-  double rttTime = 0.0;
+  double rtt = 0.0;
   int throughput = 0;
   int md5 = 0;
 
@@ -150,7 +151,7 @@ int main(int argc, char **argv) {
     std::cout << "Error connecting to server" << std::endl;
     std::cerr << exc.what();
   }
-
+  auto start = high_resolution_clock::now();
   // ****************************** Sending file size ******************************
   int received = 0;
   int sent = 0;
@@ -267,13 +268,19 @@ int main(int argc, char **argv) {
   
     currentPacket++;  
   }
+  auto end = high_resolution_clock::now();
+  auto elapsedTime = duration_cast<microseconds>(end-start);
+  totalTime = elapsedTime.count();
+  throughput = fileSize/(totalTime/1000);
   free(charSeqNum);
+  rtt = totalTime/currentPacket;
   // Print Information
   std::cout << "Finished!" << std::endl;
   std::cout << "Total Packet Size: " << totalPacketSize << " bytes" << std::endl;
   std::cout << "Number of packets sent: " << currentPacket << std::endl;
-  std::cout << "Total elapsed time: " << std::endl; //time << 
+  std::cout << "Total elapsed time: " << totalTime << std::endl; //time << 
   std::cout << "Throughput (Mbps): " << throughput << std::endl;
+  std::cout << "Round trip time: " << rtt << std::endl;
   std::cout << "md5sum: " << md5 << std::endl;
   
   // Close and exit
