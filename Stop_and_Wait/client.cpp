@@ -214,6 +214,7 @@ int main(int argc, char **argv) {
         buff[dataGot] = c;
         dataGot++;
       }
+      dataGot = 0;
     }
     // ******* Sending packet
     if (expSeqNum == maxSeqNum) {
@@ -222,12 +223,12 @@ int main(int argc, char **argv) {
 
     std::bitset<33> bs (expSeqNum);
     binSeqNum = bs.to_string();
-    std::cout << "binSeqNum: " << binSeqNum << std::endl;
+    //std::cout << "binSeqNum: " << binSeqNum << std::endl;
     
     charSeqNum = &binSeqNum[0u];
     std::cout << "charSeqNum: " << charSeqNum << std::endl;
     
-    std::cout << "buff: " << buff << std::endl;
+    //std::cout << "buff: " << buff << std::endl;
 
     // Add header information
     char dataToSend[packetSize];
@@ -235,7 +236,7 @@ int main(int argc, char **argv) {
     strcat(dataToSend, charSeqNum);
     strcat(dataToSend, buff);
     std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
-    std::cout << "Packet Body: " << dataToSend << std::endl;
+    std::cout << "Packet: " << dataToSend << std::endl;
     sent = send(sockfd, &dataToSend, packetSize, 0);
     if (sent < 0) {
       perror("Error sending packet size");
@@ -274,10 +275,12 @@ int main(int argc, char **argv) {
       getNextData = false;
       sleep(1); 
     }
-  
+    std::cout << "Upping current packet number." << std::endl; 
     currentPacket++;  
   }
   
+  std::cout << "Finished!" << std::endl;
+   
   auto end = high_resolution_clock::now();
   auto elapsedTime = duration_cast<microseconds>(end-start);
   totalTime = elapsedTime.count();
@@ -286,7 +289,6 @@ int main(int argc, char **argv) {
   rtt = totalTime/currentPacket;
   
   // Print Information
-  std::cout << "Finished!" << std::endl;
   std::cout << "Total Packet Size: " << totalPacketSize << " bytes" << std::endl;
   std::cout << "Number of packets sent: " << currentPacket << std::endl;
   std::cout << "Total elapsed time: " << totalTime << std::endl; //time << 

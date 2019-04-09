@@ -108,22 +108,25 @@ int main(int argc, char **argv) {
   std::vector<char> packet;
   int recSeqNum = 0;
   int expSeqNum = 0;
-  int headerSize = 4;
+  int headerSize = 33;
 
   int packetSize = headerSize + bodySize;
   char buff[packetSize];
-  char ack[33];
+  char ack[headerSize];
   int currentPacket = 0;
-  char binSeqNum[33];
+  char binSeqNum[headerSize];
   char body[bodySize];
 
   int lastPacketSize = fileSize % bodySize;
+  std::cout << "Standard Packet Size: " << packetSize << std::endl;
   std::cout << "Last Packet Size: " << lastPacketSize << std::endl;
 
   std::ofstream ofs("copy.txt", std::ofstream::out);
   
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
   while(currentPacket < numPackets) {
+    
+  bzero(buff, packetSize); 
    
   //Loop
     // Read in packet
@@ -148,16 +151,16 @@ int main(int argc, char **argv) {
     } else {
       std::cout << "Buff Length: " << strlen(buff) << std::endl;
       std::cout << "Received: " << buff << std::endl;
-      packet.insert(packet.end(), buff, buff + strlen(buff));
+      //packet.insert(packet.end(), buff, buff + strlen(buff));
     }
     // Zero out the buff for next packet
     // bzero(buff, packetSize);
     // first four = sequence number
     
-    strncpy(binSeqNum, buff, 33);
-    binSeqNum[33] = '\0';
+    strncpy(binSeqNum, buff, headerSize);
+    binSeqNum[headerSize] = '\0';
     std::string strSeqNum(binSeqNum);
-    strncpy(body, &buff[33], bodySize);
+    strncpy(body, &buff[headerSize], bodySize);
 
     std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
@@ -167,7 +170,7 @@ int main(int argc, char **argv) {
     bzero(buff, packetSize); 
 
     // Send ACK
-    sent = send(newsockfd, &binSeqNum, sizeof(int), 0);
+    sent = send(newsockfd, &binSeqNum, headerSize, 0);
     if (sent < 0) {
       perror("Error sending sequence number");
       exit(0);

@@ -2,10 +2,10 @@ CPP = g++
 CFLAGS = -g -Wall -pedantic -std=c++11
 LIBS = -pthread
 all: client server
-client: client.o 
+client: client.o PacketHelper.o 
 	$(CPP) $(CFLAGS) -o $@ $^ $(LIBS)
 
-server: server.o
+server: server.o PacketHelper.o
 	$(CPP) $(CFLAGS) -o $@ $^ $(LIBS)
 
 %.o: %.cpp Makefile
