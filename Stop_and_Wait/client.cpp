@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   while(!hasPicked) {
     try {
       std::cin >> fileName;  
-      inputFile.open(fileName.c_str(), ios:: in); 
+      inputFile.open(fileName.c_str(), std::ios::binary); 
       if(inputFile){
         hasPicked = true;
       } else {
@@ -224,10 +224,10 @@ int main(int argc, char **argv) {
 
     std::bitset<33> bs (expSeqNum);
     binSeqNum = bs.to_string();
-    //std::cout << "binSeqNum: " << binSeqNum << std::endl;
+    // std::cout << "binSeqNum: " << binSeqNum << std::endl;
     
     charSeqNum = &binSeqNum[0u];
-    std::cout << "charSeqNum: " << charSeqNum << std::endl;
+    // std::cout << "charSeqNum: " << charSeqNum << std::endl;
     
     //std::cout << "buff: " << buff << std::endl;
 
@@ -236,13 +236,14 @@ int main(int argc, char **argv) {
     bzero(dataToSend, packetSize);
     strcat(dataToSend, charSeqNum);
     strcat(dataToSend, buff);
-    std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
-    //std::cout << "Packet: " << dataToSend << std::endl;
+    // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
+    // std::cout << "Packet: " << dataToSend << std::endl;
     sent = send(sockfd, &dataToSend, packetSize, 0);
     if (sent < 0) {
       perror("Error sending packet size");
       exit(0);
     }
+    std::cout << "Packet " << expSeqNum << " sent." << std::endl;
     
     // Clear buffer 
     bzero(buff, bodySize);
@@ -258,9 +259,9 @@ int main(int argc, char **argv) {
       close(sockfd);
       exit(1);
     }
-    std::cout << "Using STOI on: " << ack << std::endl;
+    // std::cout << "Using STOI on: " << ack << std::endl;
     recSeqNum = std::stoi(ack, nullptr, 2);
-    std::cout << "Received ACK: " << recSeqNum << std::endl;
+    std::cout << "Ack " << recSeqNum << " received." << std::endl << std::endl;
     // Make sure ack is for correct packet
     if(recSeqNum == expSeqNum){
       getNextData = true; 
@@ -276,7 +277,6 @@ int main(int argc, char **argv) {
       getNextData = false;
       sleep(1); 
     }
-    std::cout << "Upping current packet number." << std::endl; 
     currentPacket++;  
   }
   

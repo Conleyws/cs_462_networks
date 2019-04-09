@@ -117,11 +117,14 @@ int main(int argc, char **argv) {
   char binSeqNum[headerSize];
   char body[bodySize];
 
-  int lastPacketSize = fileSize % bodySize;
+  int lastBodySize = fileSize % bodySize;
+  if (lastBodySize == 0) {
+    lastBodySize = bodySize;
+  }
   std::cout << "Standard Packet Size: " << packetSize << std::endl;
-  std::cout << "Last Packet Size: " << lastPacketSize << std::endl;
+  std::cout << "Last Body Size: " << lastBodySize << std::endl;
 
-  std::ofstream ofs("copy.txt", std::ofstream::out);
+  std::ofstream ofs("copyFile", std::ios::binary);
   
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
   while(currentPacket < numPackets) {
@@ -141,6 +144,13 @@ int main(int argc, char **argv) {
     // ******************************** Receiving Packet ************************
     received = 0;
 
+    
+    if (currentPacket == numPackets - 1) {
+      // Last file
+      //packetSize = lastBodySize + headerSize;
+      bodySize = lastBodySize;
+    }
+    
     received = recv(newsockfd, buff, packetSize, 0);
     if(received < 0){
       perror("Error receieving data.\n");
@@ -158,16 +168,16 @@ int main(int argc, char **argv) {
     // first four = sequence number
     
     strncpy(binSeqNum, buff, headerSize);
-    //binSeqNum[headerSize] = '\0';
+    //binSeqNum[headerSize - 1] = '\0';
     std::string strSeqNum(binSeqNum);
-    std::cout << "String Sequence Number: " << strSeqNum << std::endl;
-    std::cout << "BodySize: " << bodySize << std::endl;
+    //std::cout << "String Sequence Number: " << strSeqNum << std::endl;
+    //std::cout << "BodySize: " << bodySize << std::endl;
 
     strncpy(body, &buff[headerSize], bodySize);
     //body[bodySize] = '\0';
     //std::cout << "Body: " << body << std::endl;
 
-    std::cout << "Using STOI on: " << strSeqNum << std::endl;
+    //std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
     
     // Convert sequence number
@@ -181,16 +191,12 @@ int main(int argc, char **argv) {
       exit(0);
     }
     
-    std::cout << "Ack " << recSeqNum << " sent." << std::endl; //
-    if (currentPacket == numPackets - 1) {
-      // Last file
-      body[lastPacketSize] = '\0';
-    }
+    std::cout << "Ack " << recSeqNum << " sent." << std::endl << std::endl;
 
     if (expSeqNum == recSeqNum) {
       body[bodySize] = '\0';
+      //std::cout << "Writing Body: " << body << std::endl;
       ofs << body;
-      //memset(&body[0], 0, sizeof(body));
       bzero(body, bodySize);
       expSeqNum++;
       currentPacket++;
@@ -199,13 +205,10 @@ int main(int argc, char **argv) {
       }
     }
   }
-  // Close ofstream
+  
   ofs.close();
   // Clean up
-  //delete[] buff;
-  //delete[] buffer;
   printf("\nFinished\n");
-   
   printf("\n");
   printf("Closing socket\n");
   close(newsockfd);
