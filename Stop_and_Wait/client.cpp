@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
   // ****************************** Sending sequence number range ******************************
   int convertedMaxSequence = htonl(maxSeqNum);
   // Send the max sequence 
-  std::cout << "Sending max sequence: " << maxSeqNum << std::endl;
+  // std::cout << "Sending max sequence: " << maxSeqNum << std::endl;
   sent = send(sockfd, &convertedMaxSequence, sizeof(int), 0);
   if (sent < 0) {
     perror("Error sending max sequence");
@@ -202,6 +202,8 @@ int main(int argc, char **argv) {
   char buff[packetSize];
   int dataGot = 0;
   char c;
+  int bitsLeft = packetSize;
+  int totalSent = 0;
 
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
@@ -229,7 +231,7 @@ int main(int argc, char **argv) {
     charSeqNum = &binSeqNum[0u];
     // std::cout << "charSeqNum: " << charSeqNum << std::endl;
     
-    //std::cout << "buff: " << buff << std::endl;
+    // std::cout << "buff: " << buff << std::endl;
 
     // Add header information
     char dataToSend[packetSize];
@@ -238,10 +240,17 @@ int main(int argc, char **argv) {
     strcat(dataToSend, buff);
     // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
     // std::cout << "Packet: " << dataToSend << std::endl;
-    sent = send(sockfd, &dataToSend, packetSize, 0);
-    if (sent < 0) {
-      perror("Error sending packet size");
-      exit(0);
+    totalSent = 0;
+    bitsLeft = packetSize;
+    while (totalSent < packetSize) {
+      sent = send(sockfd, &dataToSend + totalSent, bitsLeft, 0);
+      if (sent < 0) {
+        perror("Error sending packet size");
+        exit(0);
+      }
+      // std::cout << "Sent: " << sent << " bits." << std::endl;
+      totalSent += sent;
+      bitsLeft -= sent;
     }
     std::cout << "Packet " << expSeqNum << " sent." << std::endl;
     

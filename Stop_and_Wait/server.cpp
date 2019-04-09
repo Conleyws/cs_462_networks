@@ -125,6 +125,8 @@ int main(int argc, char **argv) {
   std::cout << "Last Body Size: " << lastBodySize << std::endl;
 
   std::ofstream ofs("copyFile", std::ios::binary);
+
+  int bitsLeft = packetSize;
   
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
   while(currentPacket < numPackets) {
@@ -150,32 +152,40 @@ int main(int argc, char **argv) {
       //packetSize = lastBodySize + headerSize;
       bodySize = lastBodySize;
     }
-    
-    received = recv(newsockfd, buff, packetSize, 0);
-    if(received < 0){
-      perror("Error receieving data.\n");
-    } else if (received == 0) {
-      printf("Socket closed while receiving packets from client!\n");
-      close(newsockfd);
-      exit(1);
-    } else {
-      //std::cout << "Buff Length: " << strlen(buff) << std::endl;
-      //std::cout << "Received: " << buff << std::endl;
-      //packet.insert(packet.end(), buff, buff + strlen(buff));
+    bitsLeft = headerSize + bodySize;
+    while (received < bitsLeft) {
+      received += recv(newsockfd, buff, bitsLeft, 0);
+      if(received < 0){
+        perror("Error receieving data.\n");
+      } else if (received == 0) {
+        printf("Socket closed while receiving packets from client!\n");
+        close(newsockfd);
+        exit(1);
+      } else {
+        // std::cout << "Received: " << received << " bits." << std::endl;
+        // std::cout << "Buff Length: " << strlen(buff) << std::endl;
+        // std::cout << "Received: " << buff << std::endl;
+        packet.insert(packet.end(), buff, buff + strlen(buff));
+        bzero(buff, received);
+      }
+
     }
+
+    std::copy(packet.begin(), packet.end(), buff);
+    packet.clear();
     // Zero out the buff for next packet
     // bzero(buff, packetSize);
     // first four = sequence number
     
     strncpy(binSeqNum, buff, headerSize);
-    //binSeqNum[headerSize - 1] = '\0';
+    // binSeqNum[headerSize - 1] = '\0';
     std::string strSeqNum(binSeqNum);
-    //std::cout << "String Sequence Number: " << strSeqNum << std::endl;
-    //std::cout << "BodySize: " << bodySize << std::endl;
+    // std::cout << "String Sequence Number: " << strSeqNum << std::endl;
+    // std::cout << "BodySize: " << bodySize << std::endl;
 
     strncpy(body, &buff[headerSize], bodySize);
-    //body[bodySize] = '\0';
-    //std::cout << "Body: " << body << std::endl;
+    // body[bodySize] = '\0';
+    // std::cout << "Body: " << body << std::endl;
 
     //std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
