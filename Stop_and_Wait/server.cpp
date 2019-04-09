@@ -117,6 +117,9 @@ int main(int argc, char **argv) {
   char binSeqNum[33];
   char body[bodySize];
 
+  int lastPacketSize = fileSize % bodySize;
+  std::cout << "Last Packet Size: " << lastPacketSize << std::endl;
+
   std::ofstream ofs("copy.txt", std::ofstream::out);
   
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
@@ -156,6 +159,7 @@ int main(int argc, char **argv) {
     std::string strSeqNum(binSeqNum);
     strncpy(body, &buff[33], bodySize);
 
+    std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
     
     // Convert sequence number
@@ -170,9 +174,13 @@ int main(int argc, char **argv) {
     }
     
     std::cout << "Ack " << recSeqNum << " sent." << std::endl; //
-    
+    if (currentPacket == numPackets - 1) {
+      // Last file
+      body[lastPacketSize] = '\0';
+    }
+
     if (expSeqNum == recSeqNum) {
-      ofs << buff;
+      ofs << body;
       // ofs << body;
       expSeqNum++;
       currentPacket++;
@@ -184,7 +192,7 @@ int main(int argc, char **argv) {
   // Close ofstream
   ofs.close();
   // Clean up
-  delete[] buff;
+  //delete[] buff;
   //delete[] buffer;
   printf("\nFinished\n");
    

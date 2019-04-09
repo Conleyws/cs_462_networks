@@ -222,13 +222,20 @@ int main(int argc, char **argv) {
 
     std::bitset<33> bs (expSeqNum);
     binSeqNum = bs.to_string();
-    charSeqNum = &binSeqNum[0u];
+    std::cout << "binSeqNum: " << binSeqNum << std::endl;
     
+    charSeqNum = &binSeqNum[0u];
+    std::cout << "charSeqNum: " << charSeqNum << std::endl;
+    
+    std::cout << "buff: " << buff << std::endl;
+
     // Add header information
     char dataToSend[packetSize];
+    bzero(dataToSend, packetSize);
     strcat(dataToSend, charSeqNum);
     strcat(dataToSend, buff);
     std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
+    std::cout << "Packet Body: " << dataToSend << std::endl;
     sent = send(sockfd, &dataToSend, packetSize, 0);
     if (sent < 0) {
       perror("Error sending packet size");
@@ -236,7 +243,8 @@ int main(int argc, char **argv) {
     }
     
     // Clear buffer 
-    bzero(buff, packetSize);
+    bzero(buff, bodySize);
+    bzero(dataToSend, packetSize);
 
     // ******************************** Receiving Ack *********************
     //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
@@ -248,6 +256,7 @@ int main(int argc, char **argv) {
       close(sockfd);
       exit(1);
     }
+    std::cout << "Using STOI on: " << ack << std::endl;
     recSeqNum = std::stoi(ack, nullptr, 2);
     std::cout << "Received ACK: " << recSeqNum << std::endl;
     // Make sure ack is for correct packet
@@ -255,7 +264,7 @@ int main(int argc, char **argv) {
       getNextData = true; 
       // Correct ack
       expSeqNum++;
-      if(expSeqNum == maxSeqNum){
+      if (expSeqNum == maxSeqNum) {
         expSeqNum = 0;
       }
       bzero(ack, ackSize);
@@ -268,12 +277,14 @@ int main(int argc, char **argv) {
   
     currentPacket++;  
   }
+  
   auto end = high_resolution_clock::now();
   auto elapsedTime = duration_cast<microseconds>(end-start);
   totalTime = elapsedTime.count();
   throughput = fileSize/(totalTime/1000);
   free(charSeqNum);
   rtt = totalTime/currentPacket;
+  
   // Print Information
   std::cout << "Finished!" << std::endl;
   std::cout << "Total Packet Size: " << totalPacketSize << " bytes" << std::endl;
