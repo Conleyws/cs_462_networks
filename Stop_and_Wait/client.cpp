@@ -208,8 +208,9 @@ int main(int argc, char **argv) {
     // Get data from file
     if (getNextData) {
       // Clear buff
-      buff[bodySize] = '\0';
+      //bzero(buff, bodySize);
       while(dataGot < bodySize){
+        buff[bodySize] = '\0';
         c = inputFile.get();
         buff[dataGot] = c;
         dataGot++;
@@ -236,7 +237,7 @@ int main(int argc, char **argv) {
     strcat(dataToSend, charSeqNum);
     strcat(dataToSend, buff);
     std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
-    std::cout << "Packet: " << dataToSend << std::endl;
+    //std::cout << "Packet: " << dataToSend << std::endl;
     sent = send(sockfd, &dataToSend, packetSize, 0);
     if (sent < 0) {
       perror("Error sending packet size");
@@ -285,7 +286,6 @@ int main(int argc, char **argv) {
   auto elapsedTime = duration_cast<microseconds>(end-start);
   totalTime = elapsedTime.count();
   throughput = fileSize/(totalTime/1000);
-  free(charSeqNum);
   rtt = totalTime/currentPacket;
   
   // Print Information
@@ -297,6 +297,7 @@ int main(int argc, char **argv) {
   std::cout << "md5sum: " << md5 << std::endl;
   
   // Close and exit
+  inputFile.close();
   close(sockfd);
   exit(1);
 }

@@ -149,8 +149,8 @@ int main(int argc, char **argv) {
       close(newsockfd);
       exit(1);
     } else {
-      std::cout << "Buff Length: " << strlen(buff) << std::endl;
-      std::cout << "Received: " << buff << std::endl;
+      //std::cout << "Buff Length: " << strlen(buff) << std::endl;
+      //std::cout << "Received: " << buff << std::endl;
       //packet.insert(packet.end(), buff, buff + strlen(buff));
     }
     // Zero out the buff for next packet
@@ -158,9 +158,14 @@ int main(int argc, char **argv) {
     // first four = sequence number
     
     strncpy(binSeqNum, buff, headerSize);
-    binSeqNum[headerSize] = '\0';
+    //binSeqNum[headerSize] = '\0';
     std::string strSeqNum(binSeqNum);
+    std::cout << "String Sequence Number: " << strSeqNum << std::endl;
+    std::cout << "BodySize: " << bodySize << std::endl;
+
     strncpy(body, &buff[headerSize], bodySize);
+    //body[bodySize] = '\0';
+    //std::cout << "Body: " << body << std::endl;
 
     std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
@@ -183,8 +188,10 @@ int main(int argc, char **argv) {
     }
 
     if (expSeqNum == recSeqNum) {
+      body[bodySize] = '\0';
       ofs << body;
-      // ofs << body;
+      //memset(&body[0], 0, sizeof(body));
+      bzero(body, bodySize);
       expSeqNum++;
       currentPacket++;
       if (expSeqNum == maxSeqNum) {
