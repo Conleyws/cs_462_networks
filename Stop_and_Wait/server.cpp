@@ -83,10 +83,10 @@ int main(int argc, char **argv) {
   }
 
   // ********************************** Receiving Sequence Number Range **************************
-  int sequenceNumberReceived = 0;
-  int sequenceNumberRange = 0;
+  int recMaxSeqNum = 0;
+  int maxSeqNum = 0;
   
-  received = recv(newsockfd, &sequenceNumberReceived, sizeof(int), 0);
+  received = recv(newsockfd, &recMaxSeqNum, sizeof(int), 0);
   if (received < 0) {
     perror("Error receieving sequence number range.");
   } else if (received == 0) {
@@ -95,8 +95,8 @@ int main(int argc, char **argv) {
     exit(1);
   } else {
     // Convert back to int
-    sequenceNumberRange=ntohl(sequenceNumberReceived);
-    std::cout << "Sequence Number Range: " << sequenceNumberRange << std::endl;
+    maxSeqNum=ntohl(recMaxSeqNum);
+    std::cout << "Sequence Number Range: " << maxSeqNum << std::endl;
   }
 
 
@@ -106,16 +106,15 @@ int main(int argc, char **argv) {
   int totalSent = 0;
   bool finishedReceiving = false;
   std::vector<char> packet;
-  int recSequenceNumber = 0;
-  int expSequenceNumber = 0;
-  int maxSequenceNumber = 0;
+  int recSeqNum = 0;
+  int expSeqNum = 0;
   int headerSize = 4;
 
   int packetSize = headerSize + bodySize;
   char buff[packetSize];
-  char ack[5];
+  char ack[33];
   int currentPacket = 0;
-  char binSeqNum[4];
+  char binSeqNum[33];
   char body[bodySize];
 
   std::ofstream ofs("copy.txt", std::ofstream::out);
@@ -132,11 +131,11 @@ int main(int argc, char **argv) {
   //End loop
   //Write to file?
     
-    std::cout << "Expected Sequence Number: " << expSequenceNumber << std::endl;
+    std::cout << "Expected Sequence Number: " << expSeqNum << std::endl;
     // ******************************** Receiving Packet ************************
     received = 0;
 
-    received += recv(newsockfd, buff, packetSize, 0);
+    received = recv(newsockfd, buff, packetSize, 0);
     if(received < 0){
       perror("Error receieving data.\n");
     } else if (received == 0) {
@@ -152,55 +151,35 @@ int main(int argc, char **argv) {
     // bzero(buff, packetSize);
     // first four = sequence number
     
-    strncpy(binSeqNum, buff, 4);
-    strncpy(body, &buff[4], bodySize);
-    
-    
-    for (int index = 0; index < packetSize; index++) {
-      if (index < 4) {
-        // Header
-        // binSeqNum.append(packet(index));
-      } else if (index < bodySize + 4) {
-        // body
-        // body.push_back(packet(index));
-      } else {
-        // CRC ?
-      }
-    }
+    strncpy(binSeqNum, buff, 33);
+    binSeqNum[33] = '\0';
+    std::string strSeqNum(binSeqNum);
+    strncpy(body, &buff[33], bodySize);
+
+    recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
     
     // Convert sequence number
-    //recSequenceNumber = std::stoi(binSeqNum, nullptr, 2);
-    std::cout << "Packet: " << recSequenceNumber << " received." << std::endl; // Sequence number 
-    
-    if (expSequenceNumber == recSequenceNumber) {
-      ofs << buff;
-      // ofs << body;
-      expSequenceNumber++;
-    }
-    bzero(buff, packetSize);
-    //binSeqNum.clear();
-    //body.clear();
-    packet.clear();
-   
-    /*
-    int sequenceNum = 4;
-    // Convert num to binary
-    char binSeqNum [33];
-    std::itoa(sequenceNum, binSeqNum, 2);
+    std::cout << "Packet: " << recSeqNum << " received." << std::endl; // Sequence number 
+    bzero(buff, packetSize); 
 
-    // Convert binary to num when received
-    int recSequenceNumber;
-    recSequenceNumber = std::stoi(binSeqNum, nullptr, 2);
-    */
-    
     // Send ACK
-    sent = send(newsockfd, &recSequenceNumber, sizeof(int), 0);
+    sent = send(newsockfd, &binSeqNum, sizeof(int), 0);
     if (sent < 0) {
       perror("Error sending sequence number");
       exit(0);
     }
     
-    std::cout << "Ack " << recSequenceNumber << " sent." << std::endl; //
+    std::cout << "Ack " << recSeqNum << " sent." << std::endl; //
+    
+    if (expSeqNum == recSeqNum) {
+      ofs << buff;
+      // ofs << body;
+      expSeqNum++;
+      currentPacket++;
+      if (expSeqNum == maxSeqNum) {
+        expSeqNum = 0;
+      }
+    }
   }
   // Close ofstream
   ofs.close();

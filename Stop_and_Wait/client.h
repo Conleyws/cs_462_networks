@@ -11,3 +11,4 @@
 #include <vector>
 #include <string.h>
 #include <netdb.h>
+#include <bitset>

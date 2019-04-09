@@ -20,9 +20,8 @@ int main(int argc, char **argv) {
 
   // Input Parameters
   int packetSize;
-  int maxSequence;
+  int maxSeqNum;
   int numPackets = 0;
-  int sequenceNumber = 0;
   int bodySize = 0;
   // Initial variables
   int currentAck = 0;
@@ -63,10 +62,10 @@ int main(int argc, char **argv) {
         }
         std::cout << "Enter max sequence number:" << std::endl;
         try{
-          std::cin >> maxSequence; 
-          while (maxSequence < 1) {
+          std::cin >> maxSeqNum; 
+          while (maxSeqNum < 1) {
             std::cout << "Error: Sequence number must be a positive value!" << std::endl << "Enter a valid sequence number:" << std::endl;
-            std::cin >> maxSequence;
+            std::cin >> maxSeqNum;
           }
         } catch (int e) {
           std::cout << "Invalid input for sequence number!" << std::endl;
@@ -88,9 +87,13 @@ int main(int argc, char **argv) {
   } else {
     std::cout << "Using default values" << std::endl;
     bodySize = 1024;
-    maxSequence = 8;
+    maxSeqNum = 8;
   }
-  packetSize = bodySize+4;
+  
+  //TODO Generate header data
+  char header[33] = "0000";
+  
+  packetSize = bodySize+33;
   // Get file location
   hasPicked = false;
   std::cout << "Input file name:" << std::endl;
@@ -107,8 +110,6 @@ int main(int argc, char **argv) {
       std::cout << "Error opening file. Try Again!" << std::endl;
     }
   }
-  //TODO Generate header data
-  char header[5] = "0000";
 
 
   // Size of file to be send and number of packets 
@@ -116,15 +117,6 @@ int main(int argc, char **argv) {
   int fileSize = inputFile.tellg();
   inputFile.seekg(0, inputFile.beg);
   std::cout << "Size of file to send: " << fileSize << std::endl;
-  // Get first set of data from file
-  char *buff = new char[bodySize];
-  int dataGot = 0;
-  char c;
-  while(dataGot < bodySize){
-    c = inputFile.get();
-    buff[dataGot] = c;
-    dataGot++;
-  }
 
   // Socket setup
   int sockfd;
@@ -162,7 +154,6 @@ int main(int argc, char **argv) {
   // ****************************** Sending file size ******************************
   int received = 0;
   int sent = 0;
-  std::vector<char> nums; 
   
   numPackets = (fileSize+bodySize-1) / bodySize;
   int convertedFileSize = htonl(fileSize);
@@ -175,98 +166,112 @@ int main(int argc, char **argv) {
   }
   
   // ****************************** Sending body size ******************************
-  int convertedMaxSequence = htonl(maxSequence);
+  int convertedBodySize = htonl(bodySize);
+  // Send the packet size 
+  std::cout << "Sending body size: " << bodySize << std::endl;
+  sent = send(sockfd, &convertedBodySize, sizeof(int), 0);
+  if (sent < 0) {
+    perror("Error sending body size");
+    exit(0);
+  }
+
+  // ****************************** Sending sequence number range ******************************
+  int convertedMaxSequence = htonl(maxSeqNum);
   // Send the max sequence 
-  std::cout << "Sending max sequence: " << maxSequence << std::endl;
+  std::cout << "Sending max sequence: " << maxSeqNum << std::endl;
   sent = send(sockfd, &convertedMaxSequence, sizeof(int), 0);
   if (sent < 0) {
     perror("Error sending max sequence");
     exit(0);
   }
-
-  // ****************************** Sending sequence number range ******************************
-  int convertedPacketSize = htonl(bodySize);
-  // Send the packet size 
-  std::cout << "Sending body size: " << bodySize << std::endl;
-  sent = send(sockfd, &convertedPacketSize, sizeof(int), 0);
-  if (sent < 0) {
-    perror("Error sending body size");
-    exit(0);
-  }
   
-  // Add header information
-  char dataToSend[bodySize];
-  strcat(dataToSend, header);
-  strcat(dataToSend, buff);
-  //std::cout << "Sending: " << dataToSend << std::endl;
-  std::cout << "Sending data..." << std::endl;
-  // Send the amount the client should expect to receive  
-  sent = send(sockfd, &dataToSend, packetSize, 0);
-  if (sent < 0) {
-    perror("Error sending packet size");
-    exit(0);
-  }
-  char receivedData;
+  
+  int seqSize = 33;
+  int ackSize = 33;
+  char ack[ackSize]; // Only contains sequence number right now
+  
+  // Used for sequence numbers
+  std::string binSeqNum;
+  char* charSeqNum;
+  int recSeqNum = -1;
+  int expSeqNum = 0;
+  
+  // Used for reading in from file
+  bool getNextData = true;
+  char buff[packetSize];
+  int dataGot = 0;
+  char c;
+
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
+    // Get data from file
+    if (getNextData) {
+      // Clear buff
+      buff[bodySize] = '\0';
+      while(dataGot < bodySize){
+        c = inputFile.get();
+        buff[dataGot] = c;
+        dataGot++;
+      }
+    }
+    // ******* Sending packet
+    if (expSeqNum == maxSeqNum) {
+      expSeqNum = 0;
+    }
+
+    std::bitset<33> bs (expSeqNum);
+    binSeqNum = bs.to_string();
+    charSeqNum = &binSeqNum[0u];
+    
+    // Add header information
+    char dataToSend[packetSize];
+    strcat(dataToSend, charSeqNum);
+    strcat(dataToSend, buff);
+    std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
+    sent = send(sockfd, &dataToSend, packetSize, 0);
+    if (sent < 0) {
+      perror("Error sending packet size");
+      exit(0);
+    }
+    
     // Clear buffer 
-    bzero(buff,bodySize);
-    receivedData = -1;
+    bzero(buff, packetSize);
+
     // ******************************** Receiving Ack *********************
-    received = 0;
     //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
-    received += recv(sockfd, &receivedData, sizeof(char), 0);
+    received = recv(sockfd, ack, ackSize, 0);
     if(received < 0){
       perror("Error receieving data.\n");
     } else if (received == 0) {
-      std::cout << "Socket closed!" << std::endl;
+      std::cout << "Socket closed while receiving Ack from server!" << std::endl;
       close(sockfd);
       exit(1);
     }
-    std::cout << "Received ACK: " << (int)receivedData << std::endl;
+    recSeqNum = std::stoi(ack, nullptr, 2);
+    std::cout << "Received ACK: " << recSeqNum << std::endl;
     // Make sure ack is for correct packet
-    if((int)receivedData == currentAck){
-    // Correct ack
-      currentAck++;
-      if(sequenceNumber == maxSequence){
-        sequenceNumber = 0;
-      } else { 
-        sequenceNumber++;
+    if(recSeqNum == expSeqNum){
+      getNextData = true; 
+      // Correct ack
+      expSeqNum++;
+      if(expSeqNum == maxSeqNum){
+        expSeqNum = 0;
       }
-      bzero(dataToSend,packetSize);
+      bzero(ack, ackSize);
     } else {
     // Not correct ack, send packet again
       std::cout << "Incorrect ack, sending packet again" << std::endl;
+      getNextData = false;
       sleep(1); 
     }
-    // TODO Send next packet 
-    
-    // Get data from file and add to buff
-    while(dataGot < bodySize){
-      c = inputFile.get();
-      buff[dataGot] = c;
-      dataGot++;
-    }  
-    // Update header (sequence number)
-
-    // Append to data and header to dataToSend variable
-    strcat(dataToSend, header);
-    strcat(dataToSend, buff);
-    std::cout << "Sending Packet with sequence number: " << sequenceNumber << std::endl; // Sequence Number
-    sent = send(sockfd, &dataToSend, packetSize, 0);
-    if (send < 0){
-      perror("Error sending packet");
-      exit(0);
+  
     currentPacket++;  
-    }
   }
-
-  // Clean up
-  delete[] buff;
+  free(charSeqNum);
   // Print Information
   std::cout << "Finished!" << std::endl;
   std::cout << "Total Packet Size: " << totalPacketSize << " bytes" << std::endl;
-  std::cout << "Number of packets sent: " << numPackets << std::endl;
+  std::cout << "Number of packets sent: " << currentPacket << std::endl;
   std::cout << "Total elapsed time: " << std::endl; //time << 
   std::cout << "Throughput (Mbps): " << throughput << std::endl;
   std::cout << "md5sum: " << md5 << std::endl;
