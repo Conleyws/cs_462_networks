@@ -210,13 +210,13 @@ int main(int argc, char **argv) {
     // Get data from file
     if (getNextData) {
       // Clear buff
-      //bzero(buff, bodySize);
-      while(dataGot < bodySize){
-        buff[bodySize] = '\0';
+      bzero(buff, bodySize);
+      while(dataGot < bodySize-1){
         c = inputFile.get();
         buff[dataGot] = c;
         dataGot++;
       }
+      buff[bodySize] = '\0';
       dataGot = 0;
     }
     // ******* Sending packet
