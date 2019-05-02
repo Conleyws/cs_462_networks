@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
       } else {
         // std::cout << "Received: " << received << " bits." << std::endl;
         // std::cout << "Buff Length: " << strlen(buff) << std::endl;
-        // std::cout << "Received: " << buff << std::endl;
+        std::cout << "Received: " << buff << std::endl;
         packet.insert(packet.end(), buff, buff + strlen(buff));
         bzero(buff, received);
       }
@@ -206,7 +206,8 @@ int main(int argc, char **argv) {
     if (expSeqNum == recSeqNum) {
       body[bodySize] = '\0';
       //std::cout << "Writing Body: " << body << std::endl;
-      ofs << body;
+      ofs.write(body, strlen(body));
+      //ofs << body;
       bzero(body, bodySize);
       expSeqNum++;
       currentPacket++;

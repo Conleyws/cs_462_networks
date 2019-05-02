@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
   while(!hasPicked) {
     try {
       std::cin >> fileName;  
-      inputFile.open(fileName.c_str(), std::ios::binary); 
+      inputFile.open(fileName.c_str(), std::ios::in | std::ios::binary); 
       if(inputFile){
         hasPicked = true;
       } else {
@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
   
   // Used for reading in from file
   bool getNextData = true;
-  char buff[packetSize];
+  char * buff = new char[bodySize];
   int dataGot = 0;
   char c;
   int bitsLeft = packetSize;
@@ -208,17 +208,24 @@ int main(int argc, char **argv) {
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
     // Get data from file
-    if (getNextData) {
-      // Clear buff
-      bzero(buff, bodySize);
-      while(dataGot < bodySize-1){
-        c = inputFile.get();
-        buff[dataGot] = c;
-        dataGot++;
-      }
-      buff[bodySize] = '\0';
-      dataGot = 0;
+    // Clear buff
+
+    inputFile.read(buff, bodySize);
+    std::cout << std::endl;
+    //std::cout << "Size: " << strlen(buff) << ", buff: " << buff << std::endl;
+    //std::cout << buff[56] << std::endl;
+    
+    
+    for (int index = 0; index < bodySize; index++) {
+      std::cout << buff[index];
     }
+    
+    std::cout << std::endl;
+    //printf(buff);
+    
+    
+    //std::cout << std::endl;
+    //std::cout << "buff: " << buff << std::endl;
     // ******* Sending packet
     if (expSeqNum == maxSeqNum) {
       expSeqNum = 0;
@@ -231,13 +238,15 @@ int main(int argc, char **argv) {
     charSeqNum = &binSeqNum[0u];
     // std::cout << "charSeqNum: " << charSeqNum << std::endl;
     
-    // std::cout << "buff: " << buff << std::endl;
 
     // Add header information
     char dataToSend[packetSize];
     bzero(dataToSend, packetSize);
     strcat(dataToSend, charSeqNum);
-    strcat(dataToSend, buff);
+    //strcat(dataToSend, buff);
+    for (int index = 0; index < bodySize; index++) {
+      dataToSend[31+index] = buff[index];
+    }
     // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
     // std::cout << "Packet: " << dataToSend << std::endl;
     totalSent = 0;
@@ -290,7 +299,7 @@ int main(int argc, char **argv) {
   }
   
   std::cout << "Finished!" << std::endl;
-   
+  delete[] buff; 
   auto end = high_resolution_clock::now();
   auto elapsedTime = duration_cast<microseconds>(end-start);
   totalTime = elapsedTime.count();
