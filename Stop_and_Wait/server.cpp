@@ -164,13 +164,12 @@ int main(int argc, char **argv) {
       } else {
         // std::cout << "Received: " << received << " bits." << std::endl;
         // std::cout << "Buff Length: " << strlen(buff) << std::endl;
-        std::cout << "Received: " << buff << std::endl;
-        packet.insert(packet.end(), buff, buff + strlen(buff));
-        bzero(buff, received);
+        //std::cout << "Received: " << buff << std::endl;
+        packet.insert(packet.end(), buff, buff + received);
+        //bzero(buff, received);
       }
 
     }
-
     std::copy(packet.begin(), packet.end(), buff);
     packet.clear();
     // Zero out the buff for next packet
@@ -183,7 +182,9 @@ int main(int argc, char **argv) {
     // std::cout << "String Sequence Number: " << strSeqNum << std::endl;
     // std::cout << "BodySize: " << bodySize << std::endl;
 
-    strncpy(body, &buff[headerSize], bodySize);
+    for (int i = 0; i < bodySize; i++) {
+      body[i] = buff[33+i];
+    }
     // body[bodySize] = '\0';
     // std::cout << "Body: " << body << std::endl;
 
@@ -206,7 +207,7 @@ int main(int argc, char **argv) {
     if (expSeqNum == recSeqNum) {
       body[bodySize] = '\0';
       //std::cout << "Writing Body: " << body << std::endl;
-      ofs.write(body, strlen(body));
+      ofs.write(body, bodySize);
       //ofs << body;
       bzero(body, bodySize);
       expSeqNum++;

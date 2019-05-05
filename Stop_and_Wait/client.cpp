@@ -212,19 +212,7 @@ int main(int argc, char **argv) {
 
     inputFile.read(buff, bodySize);
     std::cout << std::endl;
-    //std::cout << "Size: " << strlen(buff) << ", buff: " << buff << std::endl;
-    //std::cout << buff[56] << std::endl;
     
-    
-    for (int index = 0; index < bodySize; index++) {
-      std::cout << buff[index];
-    }
-    
-    std::cout << std::endl;
-    //printf(buff);
-    
-    
-    //std::cout << std::endl;
     //std::cout << "buff: " << buff << std::endl;
     // ******* Sending packet
     if (expSeqNum == maxSeqNum) {
@@ -245,7 +233,7 @@ int main(int argc, char **argv) {
     strcat(dataToSend, charSeqNum);
     //strcat(dataToSend, buff);
     for (int index = 0; index < bodySize; index++) {
-      dataToSend[31+index] = buff[index];
+      dataToSend[33+index] = buff[index];
     }
     // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
     // std::cout << "Packet: " << dataToSend << std::endl;
