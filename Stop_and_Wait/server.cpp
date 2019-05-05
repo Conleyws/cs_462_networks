@@ -109,14 +109,13 @@ int main(int argc, char **argv) {
   int recSeqNum = 0;
   int expSeqNum = 0;
   int headerSize = 33;
-
   int packetSize = headerSize + bodySize;
   char buff[packetSize];
   char ack[headerSize];
   int currentPacket = 0;
   char binSeqNum[headerSize];
   char body[bodySize];
-
+  bool firstLoop = false;
   int lastBodySize = fileSize % bodySize;
   if (lastBodySize == 0) {
     lastBodySize = bodySize;
@@ -125,9 +124,12 @@ int main(int argc, char **argv) {
   std::cout << "Last Body Size: " << lastBodySize << std::endl;
 
   std::ofstream ofs("copyFile", std::ios::binary);
-
+  //TODO Window Size option
+  int windowSize = 8;
   int bitsLeft = packetSize;
-  
+  std::map<int, char*> dataMap; 
+  int windowStart = 0;
+  int windowEnd = windowSize-1;
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
   while(currentPacket < numPackets) {
     
@@ -142,7 +144,7 @@ int main(int argc, char **argv) {
   //End loop
   //Write to file?
     
-    std::cout << "Expected Sequence Number: " << expSeqNum << std::endl;
+    std::cout << std::endl << "Expected Sequence Number: " << expSeqNum << std::endl;
     // ******************************** Receiving Packet ************************
     received = 0;
 
@@ -202,22 +204,65 @@ int main(int argc, char **argv) {
       exit(0);
     }
     
-    std::cout << "Ack " << recSeqNum << " sent." << std::endl << std::endl;
-
+    std::cout << "Ack " << recSeqNum << " sent." << std::endl;
+    body[bodySize] = '\0';
+    std::cout << "Adding data to map at recSeqNum[" << recSeqNum << "]\nData: " << body << std::endl;
+    dataMap.insert(std::pair<int, char*>(recSeqNum, body));
+    bzero(body, bodySize);
     if (expSeqNum == recSeqNum) {
-      body[bodySize] = '\0';
-      //std::cout << "Writing Body: " << body << std::endl;
-      ofs.write(body, bodySize);
-      //ofs << body;
-      bzero(body, bodySize);
       expSeqNum++;
       currentPacket++;
       if (expSeqNum == maxSeqNum) {
         expSeqNum = 0;
       }
     }
+    //TODO have an update for GBN
+    //Update window for sliding window
+    std::cout << "seqNum: " << recSeqNum << std::endl;
+    std::cout << "WindowEnd: " << windowEnd << std::endl;
+    std::cout << "WindowStart: " << windowStart << std::endl;
+    if(windowEnd == maxSeqNum-1){
+      std::cout << "WidowEnd == maxSeqNum" << std::endl;
+      windowEnd=0;
+    } else {
+      windowEnd++;
+    }
+    std::cout << "Updated Window" << std::endl;
+    std::cout << "WindowStart: " << windowStart << std::endl;
+    std::cout << "WinodwEnd: " << windowEnd << std::endl;
+    if(recSeqNum == windowEnd && firstLoop == true){
+      std::cout << "SeqNum = WindowStart. Writing oldest data to file (seqNum[" << windowStart << "])" << std::endl;
+      std::cout << "Writing data: " << dataMap[windowStart] << std::endl;
+      ofs.write(dataMap[windowStart], bodySize);
+      //dataMap.erase(windowStart);
+      if(windowStart == maxSeqNum-1){
+        windowStart = 0;
+      } else {
+        windowStart++;
+      }
+    }else if(firstLoop==false){
+      if(recSeqNum == maxSeqNum-1){
+        std::cout << "Finished filling up window" << std::endl;
+        firstLoop = true;
+      }    
+    }
   }
-  
+  std::cout << "Recieved all the data, writing the rest of the window" << std::endl << std::endl;
+  //TODO write remaining items in window once finished receieving
+  while(windowStart != windowEnd){
+    std::cout << "Window start: " << windowStart << std::endl;
+    std::cout << "Window end: " << windowEnd << std::endl;
+    std::cout << "Writing data seqNum[" << windowStart << "] to file" << std::endl;
+    std::cout << "Writing to file: " << dataMap[windowStart] << std::endl;
+    ofs.write(dataMap[windowStart], bodySize);
+    //dataMap.erase(windowStart);
+    if(windowStart == maxSeqNum-1){
+      windowStart = 0;
+    } else {
+      windowStart++;
+    }
+  }
+  ofs.write(dataMap[windowStart], bodySize);
   ofs.close();
   // Clean up
   printf("\nFinished\n");
