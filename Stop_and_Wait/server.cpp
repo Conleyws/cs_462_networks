@@ -230,20 +230,27 @@ int main(int argc, char **argv) {
         expSeqNum = 0;
       }
     }
-    //TODO have an update for GBN
     //Update window for sliding window
     std::cout << "seqNum: " << recSeqNum << std::endl;
+    std::cout << "Current window: [";
+    int i = windowStart;
+    while(i != windowEnd){
+      if(i == maxSeqNum){
+        std::cout << "0, ";
+        i=0;
+      } else {
+        i++;
+        std::cout << i << ", ";
+      }
+    }
+    if(i == maxSeqNum){
+      std::cout << " 0";
+    } else {
+      std::cout << i;
+    }
+    std::cout << "]" << std::endl;
     std::cout << "WindowEnd: " << windowEnd << std::endl;
     std::cout << "WindowStart: " << windowStart << std::endl;
-    /**if(windowEnd == maxSeqNum-1){
-      std::cout << "WidowEnd == maxSeqNum" << std::endl;
-      windowEnd=0;
-    } else {
-      windowEnd++;
-    }**/
-    std::cout << "Updated Window" << std::endl;
-    std::cout << "WindowStart: " << windowStart << std::endl;
-    std::cout << "WinodwEnd: " << windowEnd << std::endl;
     if(recSeqNum == windowEnd && firstLoop == true){
       std::cout << "SeqNum = WindowStart. Writing oldest data to file (seqNum[" << windowStart << "])" << std::endl;
       std::cout << "Writing data: " << dataMap[windowStart].data() << std::endl;
