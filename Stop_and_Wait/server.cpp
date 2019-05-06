@@ -132,9 +132,9 @@ int main(int argc, char **argv) {
   //TODO Window Size option
   int windowSize = 8;
   int bitsLeft = packetSize;
-  std::map<int, char*> dataMap; 
+  std::map<int, std::vector<char>> dataMap; 
   int windowStart = 0;
-  int windowEnd = windowSize-1;
+  int windowEnd = 0;
   // ********************************** Begin Loop of receiving packets and sending Acks ********************
   while(currentPacket < numPackets) {
     
@@ -199,9 +199,9 @@ int main(int argc, char **argv) {
     boost::uint32_t checksum = crc.checksum();
     std::cout << "Checksum: " << checksum << std::endl;
     
-    if (crc != checksum) {
+    //if (crc != checksum) {
       // Issue with packet, don't send ACK
-    }
+    //}
 
     //std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
@@ -220,7 +220,8 @@ int main(int argc, char **argv) {
     std::cout << "Ack " << recSeqNum << " sent." << std::endl;
     body[bodySize] = '\0';
     std::cout << "Adding data to map at recSeqNum[" << recSeqNum << "]\nData: " << body << std::endl;
-    dataMap.insert(std::pair<int, char*>(recSeqNum, body));
+    std::vector<char> dataVec(body, body+bodySize);
+    dataMap[recSeqNum] = dataVec;
     bzero(body, bodySize);
     if (expSeqNum == recSeqNum) {
       expSeqNum++;
@@ -245,8 +246,8 @@ int main(int argc, char **argv) {
     std::cout << "WinodwEnd: " << windowEnd << std::endl;
     if(recSeqNum == windowEnd && firstLoop == true){
       std::cout << "SeqNum = WindowStart. Writing oldest data to file (seqNum[" << windowStart << "])" << std::endl;
-      std::cout << "Writing data: " << dataMap[windowStart] << std::endl;
-      ofs.write(dataMap[windowStart], bodySize);
+      std::cout << "Writing data: " << dataMap[windowStart].data() << std::endl;
+      ofs.write(dataMap[windowStart].data(), bodySize);
       //dataMap.erase(windowStart);
       if(windowStart == maxSeqNum-1){
         windowStart = 0;
@@ -266,8 +267,8 @@ int main(int argc, char **argv) {
     std::cout << "Window start: " << windowStart << std::endl;
     std::cout << "Window end: " << windowEnd << std::endl;
     std::cout << "Writing data seqNum[" << windowStart << "] to file" << std::endl;
-    std::cout << "Writing to file: " << dataMap[windowStart] << std::endl;
-    ofs.write(dataMap[windowStart], bodySize);
+    std::cout << "Writing to file: " << dataMap[windowStart].data() << std::endl;
+    ofs.write(dataMap[windowStart].data(), bodySize);
     //dataMap.erase(windowStart);
     if(windowStart == maxSeqNum-1){
       windowStart = 0;
@@ -275,7 +276,7 @@ int main(int argc, char **argv) {
       windowStart++;
     }
   }
-  ofs.write(dataMap[windowStart], bodySize);
+  //ofs.write(dataMap[windowStart].data(), bodySize);
   ofs.close();
   // Clean up
   printf("\nFinished\n");
