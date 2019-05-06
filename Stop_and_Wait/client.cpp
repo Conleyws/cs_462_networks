@@ -93,8 +93,9 @@ int main(int argc, char **argv) {
   
   //TODO Generate header data
   char header[33] = "0000";
+  int headerSize = 65;
   
-  packetSize = bodySize+33;
+  packetSize = bodySize+headerSize;
   // Get file location
   hasPicked = false;
   std::cout << "Input file name:" << std::endl;
@@ -196,44 +197,43 @@ int main(int argc, char **argv) {
   char* charSeqNum;
   int recSeqNum = -1;
   int expSeqNum = 0;
-  
-  // Used for reading in from file
+ 
   bool getNextData = true;
   char * buff = new char[bodySize];
   int dataGot = 0;
-  char c;
   int bitsLeft = packetSize;
   int totalSent = 0;
 
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
-    // Get data from file
-    // Clear buff
-
     inputFile.read(buff, bodySize);
-    std::cout << std::endl;
     
-    //std::cout << "buff: " << buff << std::endl;
-    // ******* Sending packet
     if (expSeqNum == maxSeqNum) {
       expSeqNum = 0;
     }
 
     std::bitset<33> bs (expSeqNum);
     binSeqNum = bs.to_string();
-    // std::cout << "binSeqNum: " << binSeqNum << std::endl;
-    
     charSeqNum = &binSeqNum[0u];
-    // std::cout << "charSeqNum: " << charSeqNum << std::endl;
     
+    // Get CRC
+    std::cout << "Calculating CRC" << std::endl;
+    boost::crc_32_type crc;
+    crc.process_bytes(buff, bodySize);
+    std::cout << "Checksum: " << crc.checksum() << std::endl;
+    boost::uint32_t checksum = crc.checksum();
+    std::cout << "uint32_t Checksum: " << checksum << std::endl;
+    std::bitset<32> bits(checksum);
+    std::cout << "Bits Checksum: " << bits.to_string() <<std::endl;
 
     // Add header information
     char dataToSend[packetSize];
     bzero(dataToSend, packetSize);
     strcat(dataToSend, charSeqNum);
-    //strcat(dataToSend, buff);
+    strcat(dataToSend, &(bits.to_string())[0u]);
+    //strcat(dataToSend, buff)
     for (int index = 0; index < bodySize; index++) {
-      dataToSend[33+index] = buff[index];
+      dataToSend[65+index] = buff[index];
     }
     // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
     // std::cout << "Packet: " << dataToSend << std::endl;

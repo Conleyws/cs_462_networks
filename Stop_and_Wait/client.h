@@ -13,3 +13,4 @@
 #include <netdb.h>
 #include <bitset>
 #include <chrono>
+#include <boost/crc.hpp>

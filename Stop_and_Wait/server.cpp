@@ -108,12 +108,17 @@ int main(int argc, char **argv) {
   std::vector<char> packet;
   int recSeqNum = 0;
   int expSeqNum = 0;
-  int headerSize = 33;
+  // Header
+  int headerSize = 65;
+  int seqNumSize = 33;
+  int crcSize = 32;
+
   int packetSize = headerSize + bodySize;
   char buff[packetSize];
   char ack[headerSize];
   int currentPacket = 0;
-  char binSeqNum[headerSize];
+  char binSeqNum[seqNumSize];
+  char binCRC[crcSize];
   char body[bodySize];
   bool firstLoop = false;
   int lastBodySize = fileSize % bodySize;
@@ -174,21 +179,29 @@ int main(int argc, char **argv) {
     }
     std::copy(packet.begin(), packet.end(), buff);
     packet.clear();
-    // Zero out the buff for next packet
-    // bzero(buff, packetSize);
-    // first four = sequence number
     
-    strncpy(binSeqNum, buff, headerSize);
-    // binSeqNum[headerSize - 1] = '\0';
+    // Grabbing Sequence Number
+    strncpy(binSeqNum, buff, seqNumSize);
     std::string strSeqNum(binSeqNum);
-    // std::cout << "String Sequence Number: " << strSeqNum << std::endl;
-    // std::cout << "BodySize: " << bodySize << std::endl;
 
+    // Grabbing CRC
+    strncpy(binCRC, buff+33, crcSize);
+    std::string strCRC(binCRC);
+    
+    
+    
     for (int i = 0; i < bodySize; i++) {
-      body[i] = buff[33+i];
+      body[i] = buff[headerSize+i];
     }
-    // body[bodySize] = '\0';
-    // std::cout << "Body: " << body << std::endl;
+
+    boost::crc_32_type crc;
+    crc.process_bytes(body, bodySize);
+    boost::uint32_t checksum = crc.checksum();
+    std::cout << "Checksum: " << checksum << std::endl;
+    
+    if (crc != checksum) {
+      // Issue with packet, don't send ACK
+    }
 
     //std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
@@ -198,7 +211,7 @@ int main(int argc, char **argv) {
     bzero(buff, packetSize); 
 
     // Send ACK
-    sent = send(newsockfd, &binSeqNum, headerSize, 0);
+    sent = send(newsockfd, &binSeqNum, seqNumSize, 0);
     if (sent < 0) {
       perror("Error sending sequence number");
       exit(0);
