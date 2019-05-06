@@ -11,6 +11,7 @@
 #include <iterator>
 #include <vector>
 #include <unistd.h>
+#include <boost/crc.hpp>
 #include <map>
 
 class server {
