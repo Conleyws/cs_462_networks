@@ -186,22 +186,25 @@ int main(int argc, char **argv) {
 
     // Grabbing CRC
     strncpy(binCRC, buff+33, crcSize);
+    binCRC[crcSize] = '\0';
     std::string strCRC(binCRC);
-    
-    
-    
+        
     for (int i = 0; i < bodySize; i++) {
       body[i] = buff[headerSize+i];
     }
 
-    boost::crc_32_type crc;
+        boost::crc_32_type crc;
     crc.process_bytes(body, bodySize);
     boost::uint32_t checksum = crc.checksum();
-    std::cout << "Checksum: " << checksum << std::endl;
+    std::cout << "Checksum: " << checksum << std::endl; 
+    std::bitset<32> bits(checksum);
+    std::string calcCRC = bits.to_string();
     
-    //if (crc != checksum) {
-      // Issue with packet, don't send ACK
-    //}
+    if (calcCRC.compare(strCRC) == 0) {
+      std::cout << "CRC does not match, Received: " << strCRC << ", Calculated: " << calcCRC << std::endl;
+    } else {
+      std::cout << "CRC matches, Received: " << strCRC << ", Calculated: " << calcCRC << std::endl;
+    }
 
     //std::cout << "Using STOI on: " << strSeqNum << std::endl;
     recSeqNum = std::stoi(strSeqNum, nullptr, 2); 
