@@ -235,12 +235,12 @@ int main(int argc, char **argv) {
     std::cout << "seqNum: " << recSeqNum << std::endl;
     std::cout << "WindowEnd: " << windowEnd << std::endl;
     std::cout << "WindowStart: " << windowStart << std::endl;
-    if(windowEnd == maxSeqNum-1){
+    /**if(windowEnd == maxSeqNum-1){
       std::cout << "WidowEnd == maxSeqNum" << std::endl;
       windowEnd=0;
     } else {
       windowEnd++;
-    }
+    }**/
     std::cout << "Updated Window" << std::endl;
     std::cout << "WindowStart: " << windowStart << std::endl;
     std::cout << "WinodwEnd: " << windowEnd << std::endl;
@@ -255,11 +255,17 @@ int main(int argc, char **argv) {
         windowStart++;
       }
     }else if(firstLoop==false){
-      if(recSeqNum == maxSeqNum-1){
+      if(recSeqNum == windowSize-1){
         std::cout << "Finished filling up window" << std::endl;
         firstLoop = true;
-      }    
+      }
     }
+    if(windowEnd == maxSeqNum-1){
+      std::cout << "WidowEnd == maxSeqNum" << std::endl;
+      windowEnd=0;
+    } else {
+      windowEnd++;
+    } 
   }
   std::cout << "Recieved all the data, writing the rest of the window" << std::endl << std::endl;
   //TODO write remaining items in window once finished receieving
