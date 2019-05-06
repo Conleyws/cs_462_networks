@@ -265,7 +265,8 @@ int main(int argc, char **argv) {
       close(sockfd);
       exit(1);
     }
-    // std::cout << "Using STOI on: " << ack << std::endl;
+    /
+    std::cout << "Using STOI on: " << ack << std::endl;
     recSeqNum = std::stoi(ack, nullptr, 2);
     std::cout << "Ack " << recSeqNum << " received." << std::endl << std::endl;
     // Make sure ack is for correct packet
