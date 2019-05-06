@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
 
   try{
     struct hostent *server;
-    server = gethostbyname("thing1.cs.uwec.edu");
+    server = gethostbyname("thing3.cs.uwec.edu");
 
     if(server == NULL) {
       std::cout << "ERROR, no such host!" << std::endl;
