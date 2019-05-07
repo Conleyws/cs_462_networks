@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
   // Input Parameters
   int packetSize;
-  int maxSeqNum = 1;
+  int maxSeqNum = 2;
   int clientWinSize = 1;
   int serverWinSize = 1;
   int numPackets = 0;
@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
   
   
   int startSeqNum = 0;
-  int endSeqNum = clientWinSize;
+  int endSeqNum = clientWinSize - 1;
   int tempEndSeqNum = endSeqNum;
   int curSeqNum = 0;
   char cache[maxSeqNum][bodySize];
@@ -345,7 +345,7 @@ int main(int argc, char **argv) {
   while (currentPacket < numPackets) {
 
     // Loop through window
-    while (curSeqNum != endSeqNum || currentPacket != numPackets) {
+    while (curSeqNum <= endSeqNum && currentPacket != numPackets) {
 
       if (currentPacket == numPackets - 1) {
         bodySize = lastBodySize;
@@ -406,7 +406,13 @@ int main(int argc, char **argv) {
     // ********************************** End of Sending ********************
 
     // ********************************** Prep before receiving ********************
+    /*
+    if (currentPacket == numPackets) {
+
+    }
+    */
     curSeqNum = (curSeqNum - clientWinSize) % maxSeqNum;
+    currentPacket = (currentPacket - clientWinSize) % maxSeqNum;
 
     if (curSeqNum >= endSeqNum) {
       // Look for acks that are less end than but greater than current
@@ -419,7 +425,7 @@ int main(int argc, char **argv) {
     // ******************************** Receiving Ack *********************
     //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
 
-    while (curSeqNum != endSeqNum || currentPacket != numPackets) {
+    while (curSeqNum <= endSeqNum && currentPacket != numPackets) {
       received = recv(sockfd, ack, ackSize, 0);
       if(received < 0){
         perror("Error receieving data.\n");
@@ -454,12 +460,12 @@ int main(int argc, char **argv) {
         // Move Window if recSeqNum is curSeqNumber 
         if (recSeqNum == curSeqNum) {
           tempEndSeqNum = (tempEndSeqNum + 1) % maxSeqNum;
-          // Print window
           curSeqNum = (curSeqNum + 1) % maxSeqNum;
+          // Print window
           std::cout << "Current Window = [";
-          for (int index = curSeqNum; index != tempEndSeqNum; index + 1 % maxSeqNum) {
+          for (int index = curSeqNum; index != tempEndSeqNum; (index + 1) % maxSeqNum) {
             std::cout << index;
-            if (index + 1 != tempEndSeqNum) {
+            if ((index + 1) % maxSeqNum != tempEndSeqNum) {
               std::cout << ", ";
             }
           }
