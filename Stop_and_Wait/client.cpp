@@ -67,6 +67,15 @@ int main(int argc, char **argv) {
         break;
       case 2:
         std::cout << "Running Go Back N" << std::endl;
+        try{
+          std::cin >> bodySize; 
+          while (bodySize < 1){
+            std::cout << "Error: You must choose a number greater than 0" << std::endl;
+            std::cin >> bodySize;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for size of packet!" << std::endl;
+        }
         std::cout << "Enter max sequence number:" << std::endl;
         try{
           std::cin >> maxSeqNum; 
@@ -91,6 +100,15 @@ int main(int argc, char **argv) {
         break;
       case 3:
         std::cout << "Running Selective Repeate" << std::endl;
+        try{
+          std::cin >> bodySize; 
+          while (bodySize < 1){
+            std::cout << "Error: You must choose a number greater than 0" << std::endl;
+            std::cin >> bodySize;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for size of packet!" << std::endl;
+        }
         
         std::cout << "Enter max sequence number:" << std::endl;
         try{
@@ -337,6 +355,7 @@ int main(int argc, char **argv) {
   int tempEndSeqNum = endSeqNum;
   int curSeqNum = 0;
   char cache[maxSeqNum][bodySize];
+  int winIndex = 0;
 
   bool endGreaterThan = true;
   bool inRange = false;
@@ -345,7 +364,7 @@ int main(int argc, char **argv) {
   while (currentPacket < numPackets) {
 
     // Loop through window
-    while (curSeqNum <= endSeqNum && currentPacket != numPackets) {
+    while (winIndex < clientWinSize && currentPacket != numPackets) {
 
       if (currentPacket == numPackets - 1) {
         bodySize = lastBodySize;
@@ -402,6 +421,7 @@ int main(int argc, char **argv) {
       curSeqNum = (curSeqNum + 1) % maxSeqNum;
       currentPacket++;
     }
+    winIndex = 0;
     
     // ********************************** End of Sending ********************
 
@@ -425,9 +445,9 @@ int main(int argc, char **argv) {
     // ******************************** Receiving Ack *********************
     //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
 
-    while (curSeqNum <= endSeqNum && currentPacket != numPackets) {
+    while (winIndex < clientWinSize && currentPacket != numPackets) {
       received = recv(sockfd, ack, ackSize, 0);
-      if(received < 0){
+      if (received < 0) {
         perror("Error receieving data.\n");
       } else if (received == 0) {
         std::cout << "Socket closed while receiving Ack from server!" << std::endl;
@@ -484,6 +504,7 @@ int main(int argc, char **argv) {
 
       currentPacket++;
     }
+    winIndex = 0;
     endSeqNum = tempEndSeqNum;
   }
   
