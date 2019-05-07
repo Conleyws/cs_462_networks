@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
   // Header
   int headerSize = 65;
   int seqNumSize = 33;
-  int crcSize = 32;
+  const int crcSize = 32;
 
   int packetSize = headerSize + bodySize;
   char buff[packetSize];
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
   int currentPacket = 0;
   char binSeqNum[seqNumSize];
   char binCRC[crcSize];
-  char body[bodySize];
+  char * body = new char[bodySize];
   bool firstLoop = false;
   int lastBodySize = fileSize % bodySize;
   if (lastBodySize == 0) {
@@ -184,23 +184,29 @@ int main(int argc, char **argv) {
     strncpy(binSeqNum, buff, seqNumSize);
     std::string strSeqNum(binSeqNum);
 
-    // Grabbing CRC
-    strncpy(binCRC, buff+33, crcSize);
-    binCRC[crcSize] = '\0';
-    std::string strCRC(binCRC);
-        
+    // std::cout << "Body: ";
     for (int i = 0; i < bodySize; i++) {
       body[i] = buff[headerSize+i];
+      // std::cout << body[i];
     }
+    // std::cout << std::endl;
 
-        boost::crc_32_type crc;
+    boost::crc_32_type crc;
     crc.process_bytes(body, bodySize);
+    std::cout << "Size: " << bodySize;
     boost::uint32_t checksum = crc.checksum();
-    std::cout << "Checksum: " << checksum << std::endl; 
-    std::bitset<32> bits(checksum);
+    std::cout << "uint32_t Checksum: " << checksum << std::endl; 
+    std::bitset<crcSize> bits(checksum);
     std::string calcCRC = bits.to_string();
+    std::cout << "Bits Checksum: " << calcCRC << std::endl;
     
-    if (calcCRC.compare(strCRC) == 0) {
+    // Grabbing CRC
+    strncpy(binCRC, buff+33, crcSize);
+    std::bitset<crcSize> bitsCRC(binCRC);
+    std::string strCRC = bitsCRC.to_string();
+    
+
+    if (calcCRC.compare(strCRC) != 0) {
       std::cout << "CRC does not match, Received: " << strCRC << ", Calculated: " << calcCRC << std::endl;
     } else {
       std::cout << "CRC matches, Received: " << strCRC << ", Calculated: " << calcCRC << std::endl;
@@ -222,7 +228,7 @@ int main(int argc, char **argv) {
     
     std::cout << "Ack " << recSeqNum << " sent." << std::endl;
     body[bodySize] = '\0';
-    std::cout << "Adding data to map at recSeqNum[" << recSeqNum << "]\nData: " << body << std::endl;
+    // std::cout << "Adding data to map at recSeqNum[" << recSeqNum << "]\nData: " << body << std::endl;
     std::vector<char> dataVec(body, body+bodySize);
     dataMap[recSeqNum] = dataVec;
     bzero(body, bodySize);
@@ -256,7 +262,7 @@ int main(int argc, char **argv) {
     std::cout << "WindowStart: " << windowStart << std::endl;
     if(recSeqNum == windowEnd && firstLoop == true){
       std::cout << "SeqNum = WindowStart. Writing oldest data to file (seqNum[" << windowStart << "])" << std::endl;
-      std::cout << "Writing data: " << dataMap[windowStart].data() << std::endl;
+      // std::cout << "Writing data: " << dataMap[windowStart].data() << std::endl;
       ofs.write(dataMap[windowStart].data(), bodySize);
       //dataMap.erase(windowStart);
       if(windowStart == maxSeqNum-1){
@@ -278,12 +284,11 @@ int main(int argc, char **argv) {
     } 
   }
   std::cout << "Recieved all the data, writing the rest of the window" << std::endl << std::endl;
-  //TODO write remaining items in window once finished receieving
   while(windowStart != windowEnd){
     std::cout << "Window start: " << windowStart << std::endl;
     std::cout << "Window end: " << windowEnd << std::endl;
     std::cout << "Writing data seqNum[" << windowStart << "] to file" << std::endl;
-    std::cout << "Writing to file: " << dataMap[windowStart].data() << std::endl;
+    // std::cout << "Writing to file: " << dataMap[windowStart].data() << std::endl;
     ofs.write(dataMap[windowStart].data(), bodySize);
     //dataMap.erase(windowStart);
     if(windowStart == maxSeqNum-1){
@@ -292,6 +297,7 @@ int main(int argc, char **argv) {
       windowStart++;
     }
   }
+  delete[] body;
   //ofs.write(dataMap[windowStart].data(), bodySize);
   ofs.close();
   // Clean up

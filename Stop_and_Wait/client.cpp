@@ -187,6 +187,10 @@ int main(int argc, char **argv) {
     exit(0);
   }
   
+  int lastBodySize = fileSize % bodySize;
+  if (lastBodySize == 0) {
+    lastBodySize = bodySize;
+  }
   
   int seqSize = 33;
   int ackSize = 33;
@@ -206,6 +210,10 @@ int main(int argc, char **argv) {
 
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
+    if (currentPacket == numPackets - 1) {
+      bodySize = lastBodySize;
+    }
+
     inputFile.read(buff, bodySize);
     
     if (expSeqNum == maxSeqNum) {
@@ -219,9 +227,17 @@ int main(int argc, char **argv) {
     // Get CRC
     std::cout << "Calculating CRC" << std::endl;
     boost::crc_32_type crc;
+    /*
+    std::cout << "Body: ";
+    for (int index = 0; index < bodySize; index++) {
+      //std::cout << buff[index];
+    }
+    std::cout << std::endl;
+    std::cout << "Size: " << bodySize;
+    */
     crc.process_bytes(buff, bodySize);
-    std::cout << "Checksum: " << crc.checksum() << std::endl;
     boost::uint32_t checksum = crc.checksum();
+    std::cout << "Checksum: " << checksum << std::endl;
     std::cout << "uint32_t Checksum: " << checksum << std::endl;
     std::bitset<32> bits(checksum);
     std::cout << "Bits Checksum: " << bits.to_string() <<std::endl;
