@@ -97,11 +97,11 @@ int main(int argc, char **argv) {
   int packetDamage = -1;
   int ackLoss = -1;
   
-  std::cout << "Force Errors?" 
-			<< "[0] No Errors" << std::endl 
-			<< "[1] Packet Loss" << std::endl 
-			<< "[2] Damaged Packet" << std::endl
-			<< "[3] Ack Lost" << std::endl;
+  std::cout << "Force Errors?" <<std::endl
+	    << "[0] No Errors" << std::endl 
+	    << "[1] Packet Loss" << std::endl 
+	    << "[2] Damaged Packet" << std::endl
+	    << "[3] Ack Lost" << std::endl;
   
   hasPicked = false;
   while(!hasPicked) {
@@ -179,8 +179,6 @@ int main(int argc, char **argv) {
     }
   }
   
-  
-
 
   // Size of file to be send and number of packets 
   inputFile.seekg(0, inputFile.end);
@@ -221,6 +219,7 @@ int main(int argc, char **argv) {
     std::cerr << exc.what();
   }
   auto start = high_resolution_clock::now();
+
   // ****************************** Sending file size ******************************
   int received = 0;
   int sent = 0;
@@ -248,10 +247,19 @@ int main(int argc, char **argv) {
   // ****************************** Sending sequence number range ******************************
   int convertedMaxSequence = htonl(maxSeqNum);
   // Send the max sequence 
-  // std::cout << "Sending max sequence: " << maxSeqNum << std::endl;
+  std::cout << "Sending max sequence: " << maxSeqNum << std::endl;
   sent = send(sockfd, &convertedMaxSequence, sizeof(int), 0);
   if (sent < 0) {
     perror("Error sending max sequence");
+    exit(0);
+  }
+
+  // Sending Lost Ack, always sends but might be -1
+  int convertedAckLoss = htonl(ackLoss);
+  std::cout << "Sending ack to lose: " << ackLoss << std::endl;
+  sent = send(sockfd, &convertedAckLoss, sizeof(int), 0);
+  if (sent < 0) {
+    perror("Error sending lost ack number");
     exit(0);
   }
   
@@ -276,6 +284,7 @@ int main(int argc, char **argv) {
   int bitsLeft = packetSize;
   int totalSent = 0;
   
+  
   //char cache[sequenceNumber][]
 
   // ********************************** Begin Loop of receiving and sending information *********************
@@ -297,14 +306,7 @@ int main(int argc, char **argv) {
     // Get CRC
     std::cout << "Calculating CRC" << std::endl;
     boost::crc_32_type crc;
-    /*
-    std::cout << "Body: ";
-    for (int index = 0; index < bodySize; index++) {
-      //std::cout << buff[index];
-    }
-    std::cout << std::endl;
-    std::cout << "Size: " << bodySize;
-    */
+    
     crc.process_bytes(buff, bodySize);
     boost::uint32_t checksum = crc.checksum();
     std::cout << "Checksum: " << checksum << std::endl;
@@ -323,6 +325,7 @@ int main(int argc, char **argv) {
     }
     // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
     // std::cout << "Packet: " << dataToSend << std::endl;
+
     totalSent = 0;
     bitsLeft = packetSize;
     while (totalSent < packetSize) {
