@@ -99,6 +99,22 @@ int main(int argc, char **argv) {
     std::cout << "Sequence Number Range: " << maxSeqNum << std::endl;
   }
 
+  // ********************************** Receiving Lost Ack Index **************************
+  int recAckLoss = 0;
+  int ackLoss = 0;
+  
+  received = recv(newsockfd, &recAckLoss, sizeof(int), 0);
+  if (received < 0) {
+    perror("Error receieving Ack Loss.");
+  } else if (received == 0) {
+    std::cout << "Socket closed on server end. Closing socket." << std::endl;
+    close(sockfd);
+    exit(1);
+  } else {
+    // Convert back to int
+    ackLoss=ntohl(recAckLoss);
+    std::cout << "Ack to lose: " << ackLoss << std::endl;
+  }
 
   numPackets = (fileSize + bodySize - 1) / bodySize;
   std::cout << "Total number of packets: " << numPackets << std::endl;

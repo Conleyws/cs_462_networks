@@ -468,10 +468,6 @@ int main(int argc, char **argv) {
 
         // Clear Cache of recSeqNum
         bzero(cache[recSeqNum], bodySize);
-        expSeqNum++;
-        if (expSeqNum == maxSeqNum) {
-          expSeqNum = 0;
-        }
         bzero(ack, ackSize);
       } else {
       // Not correct ack, send packet again
