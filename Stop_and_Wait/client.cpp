@@ -21,7 +21,9 @@ int main(int argc, char **argv) {
 
   // Input Parameters
   int packetSize;
-  int maxSeqNum;
+  int maxSeqNum = 1;
+  int clientWinSize = 1;
+  int serverWinSize = 1;
   int numPackets = 0;
   int bodySize = 0;
   // Initial variables
@@ -61,6 +63,10 @@ int main(int argc, char **argv) {
         } catch (int e) {
           std::cout << "Invalid input for size of packet!" << std::endl;
         }
+        hasPicked = true;
+        break;
+      case 2:
+        std::cout << "Running Go Back N" << std::endl;
         std::cout << "Enter max sequence number:" << std::endl;
         try{
           std::cin >> maxSeqNum; 
@@ -70,15 +76,55 @@ int main(int argc, char **argv) {
           }
         } catch (int e) {
           std::cout << "Invalid input for sequence number!" << std::endl;
-        } 
-        hasPicked = true;
-        break;
-      case 2:
-        std::cout << "Running Go Back N" << std::endl;
+        }
+        std::cout << "Enter window size:" << std::endl;
+        try{
+          std::cin >> clientWinSize; 
+          while (clientWinSize < 1 || clientWinSize > maxSeqNum) {
+            std::cout << "Error: Window size must be a positive value!" << std::endl << "Enter a valid window size:" << std::endl;
+            std::cin >> clientWinSize;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for window size!" << std::endl;
+        }       
         hasPicked = true;
         break;
       case 3:
         std::cout << "Running Selective Repeate" << std::endl;
+        
+        std::cout << "Enter max sequence number:" << std::endl;
+        try{
+          std::cin >> maxSeqNum; 
+          while (maxSeqNum < 1) {
+            std::cout << "Error: Sequence number must be a positive value!" << std::endl << "Enter a valid sequence number:" << std::endl;
+            std::cin >> maxSeqNum;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for sequence number!" << std::endl;
+        }
+        
+        std::cout << "Enter client window size:" << std::endl;
+        try{
+          std::cin >> clientWinSize; 
+          while (clientWinSize < 1 || clientWinSize > maxSeqNum) {
+            std::cout << "Error: Window size must be a positive value!" << std::endl << "Enter a valid window size:" << std::endl;
+            std::cin >> clientWinSize;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for window size!" << std::endl;
+        }
+        
+        std::cout << "Enter server window size:" << std::endl;
+        try{
+          std::cin >> serverWinSize; 
+          while (serverWinSize < 1 || serverWinSize > maxSeqNum) {
+            std::cout << "Error: Sequence number must be a positive value!" << std::endl << "Enter a valid window size:" << std::endl;
+            std::cin >> serverWinSize;
+          }
+        } catch (int e) {
+          std::cout << "Invalid input for server window size!" << std::endl;
+        }
+
         hasPicked = true;
         break;
       default:
@@ -277,6 +323,7 @@ int main(int argc, char **argv) {
   char* charSeqNum;
   int recSeqNum = -1;
   int expSeqNum = 0;
+  int oldSeqNum = 0;
  
   bool getNextData = true;
   char * buff = new char[bodySize];
@@ -285,94 +332,157 @@ int main(int argc, char **argv) {
   int totalSent = 0;
   
   
-  //char cache[sequenceNumber][]
+  int startSeqNum = 0;
+  int endSeqNum = clientWinSize;
+  int tempEndSeqNum = endSeqNum;
+  int curSeqNum = 0;
+  char cache[maxSeqNum][bodySize];
+
+  bool endGreaterThan = true;
+  bool inRange = false;
 
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
-    if (currentPacket == numPackets - 1) {
-      bodySize = lastBodySize;
-    }
 
-    inputFile.read(buff, bodySize);
-    
-    if (expSeqNum == maxSeqNum) {
-      expSeqNum = 0;
-    }
+    // Loop through window
+    while (curSeqNum != endSeqNum || currentPacket != numPackets) {
 
-    std::bitset<33> bs (expSeqNum);
-    binSeqNum = bs.to_string();
-    charSeqNum = &binSeqNum[0u];
-    
-    // Get CRC
-    std::cout << "Calculating CRC" << std::endl;
-    boost::crc_32_type crc;
-    
-    crc.process_bytes(buff, bodySize);
-    boost::uint32_t checksum = crc.checksum();
-    std::cout << "Checksum: " << checksum << std::endl;
-    std::cout << "uint32_t Checksum: " << checksum << std::endl;
-    std::bitset<32> bits(checksum);
-    std::cout << "Bits Checksum: " << bits.to_string() <<std::endl;
-
-    // Add header information
-    char dataToSend[packetSize];
-    bzero(dataToSend, packetSize);
-    strcat(dataToSend, charSeqNum);
-    strcat(dataToSend, &(bits.to_string())[0u]);
-    //strcat(dataToSend, buff)
-    for (int index = 0; index < bodySize; index++) {
-      dataToSend[65+index] = buff[index];
-    }
-    // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
-    // std::cout << "Packet: " << dataToSend << std::endl;
-
-    totalSent = 0;
-    bitsLeft = packetSize;
-    while (totalSent < packetSize) {
-      sent = send(sockfd, &dataToSend + totalSent, bitsLeft, 0);
-      if (sent < 0) {
-        perror("Error sending packet size");
-        exit(0);
+      if (currentPacket == numPackets - 1) {
+        bodySize = lastBodySize;
+        packetSize = headerSize + bodySize;
       }
-      // std::cout << "Sent: " << sent << " bits." << std::endl;
-      totalSent += sent;
-      bitsLeft -= sent;
+
+      inputFile.read(buff, bodySize);
+      
+      // Convert sequence number to from int to char array
+      std::bitset<33> bs (curSeqNum);
+      binSeqNum = bs.to_string();
+      charSeqNum = &binSeqNum[0u];
+      
+      // Get CRC
+      std::cout << "Calculating CRC" << std::endl;
+      boost::crc_32_type crc;
+      
+      crc.process_bytes(buff, bodySize);
+      boost::uint32_t checksum = crc.checksum();
+      std::cout << "Checksum: " << checksum << std::endl;
+      std::cout << "uint32_t Checksum: " << checksum << std::endl;
+      std::bitset<32> bits(checksum);
+      std::cout << "Bits Checksum: " << bits.to_string() <<std::endl;
+
+      // Add header information
+      char dataToSend[packetSize];
+      bzero(dataToSend, packetSize);
+      strcat(dataToSend, charSeqNum);
+      strcat(dataToSend, &(bits.to_string())[0u]);
+      for (int index = 0; index < bodySize; index++) {
+        dataToSend[65+index] = buff[index];
+        cache[curSeqNum][index] = buff[index]; 
+      }
+      // std::cout << "Sending packet with sequence number: " << expSeqNum << std::endl;
+      // std::cout << "Packet: " << dataToSend << std::endl;
+
+      totalSent = 0;
+      bitsLeft = packetSize;
+      while (totalSent < packetSize) {
+        sent = send(sockfd, &dataToSend + totalSent, bitsLeft, 0);
+        if (sent < 0) {
+          perror("Error sending packet size");
+          exit(0);
+        }
+        // std::cout << "Sent: " << sent << " bits." << std::endl;
+        totalSent += sent;
+        bitsLeft -= sent;
+      }
+      std::cout << "Packet " << curSeqNum << " sent." << std::endl;
+      
+      // Reset for next send 
+      bzero(buff, bodySize);
+      bzero(dataToSend, packetSize);
+      curSeqNum = (curSeqNum + 1) % maxSeqNum;
+      currentPacket++;
     }
-    std::cout << "Packet " << expSeqNum << " sent." << std::endl;
     
-    // Clear buffer 
-    bzero(buff, bodySize);
-    bzero(dataToSend, packetSize);
+    // ********************************** End of Sending ********************
+
+    // ********************************** Prep before receiving ********************
+    curSeqNum = (curSeqNum - clientWinSize) % maxSeqNum;
+
+    if (curSeqNum >= endSeqNum) {
+      // Look for acks that are less end than but greater than current
+      endGreaterThan = false;
+    } else {
+      // Look for acks that are greater than exp but less than old
+      endGreaterThan = true;
+    }
 
     // ******************************** Receiving Ack *********************
     //TODO CHANGE PACKETSIZE TO JUST BE THE ACK
-    received = recv(sockfd, ack, ackSize, 0);
-    if(received < 0){
-      perror("Error receieving data.\n");
-    } else if (received == 0) {
-      std::cout << "Socket closed while receiving Ack from server!" << std::endl;
-      close(sockfd);
-      exit(1);
-    }
-    // std::cout << "Using STOI on: " << ack << std::endl;
-    recSeqNum = std::stoi(ack, nullptr, 2);
-    std::cout << "Ack " << recSeqNum << " received." << std::endl << std::endl;
-    // Make sure ack is for correct packet
-    if(recSeqNum == expSeqNum){
-      getNextData = true; 
-      // Correct ack
-      expSeqNum++;
-      if (expSeqNum == maxSeqNum) {
-        expSeqNum = 0;
+
+    while (curSeqNum != endSeqNum || currentPacket != numPackets) {
+      received = recv(sockfd, ack, ackSize, 0);
+      if(received < 0){
+        perror("Error receieving data.\n");
+      } else if (received == 0) {
+        std::cout << "Socket closed while receiving Ack from server!" << std::endl;
+        close(sockfd);
+        exit(1);
       }
-      bzero(ack, ackSize);
-    } else {
-    // Not correct ack, send packet again
-      std::cout << "Incorrect ack, sending packet again" << std::endl;
-      getNextData = false;
-      sleep(1); 
+
+      // std::cout << "Using STOI on: " << ack << std::endl;
+      recSeqNum = std::stoi(ack, nullptr, 2);
+      std::cout << "Ack " << recSeqNum << " received." << std::endl << std::endl;
+
+      // Make sure ack is for correct packet
+      // Check if in range of oldSeqNum / expSeqNum
+      if (endGreaterThan) {
+        if(recSeqNum <= endSeqNum || recSeqNum >= curSeqNum) {
+         inRange = true; 
+        } else {
+          inRange = false;
+        }
+      } else {
+        if(recSeqNum >= endSeqNum || recSeqNum <= curSeqNum) {
+          inRange = true;
+        } else {
+          inRange = false;
+        }
+      }
+
+      if (inRange) {
+        // Correct ack
+        // Move Window if recSeqNum is curSeqNumber 
+        if (recSeqNum == curSeqNum) {
+          tempEndSeqNum = (tempEndSeqNum + 1) % maxSeqNum;
+          // Print window
+          curSeqNum = (curSeqNum + 1) % maxSeqNum;
+          std::cout << "Current Window = [";
+          for (int index = curSeqNum; index != tempEndSeqNum; index + 1 % maxSeqNum) {
+            std::cout << index;
+            if (index + 1 != tempEndSeqNum) {
+              std::cout << ", ";
+            }
+          }
+          std::cout << "]" << std::endl;
+        }
+
+        // Clear Cache of recSeqNum
+        bzero(cache[recSeqNum], bodySize);
+        expSeqNum++;
+        if (expSeqNum == maxSeqNum) {
+          expSeqNum = 0;
+        }
+        bzero(ack, ackSize);
+      } else {
+      // Not correct ack, send packet again
+        std::cout << "Incorrect ack, sending packet again" << std::endl;
+        getNextData = false;
+        sleep(1); 
+      }
+
+      currentPacket++;
     }
-    currentPacket++;
+    endSeqNum = tempEndSeqNum;
   }
   
   std::cout << "Finished!" << std::endl;
