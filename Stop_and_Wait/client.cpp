@@ -91,9 +91,75 @@ int main(int argc, char **argv) {
     maxSeqNum = 8;
   }
   
-  //TODO Generate header data
-  char header[33] = "0000";
+  
   int headerSize = 65;
+  int packetLoss = -1;
+  int packetDamage = -1;
+  int ackLoss = -1;
+  
+  std::cout << "Force Errors?" 
+			<< "[0] No Errors" << std::endl 
+			<< "[1] Packet Loss" << std::endl 
+			<< "[2] Damaged Packet" << std::endl
+			<< "[3] Ack Lost" << std::endl;
+  
+  hasPicked = false;
+  while(!hasPicked) {
+      try {
+        std::cin >> option;
+      } catch (int e) {
+        printf("Invalid input type; you must use a number\n");
+      }
+
+    switch(option) {
+		case 0:
+			std::cout << "Continuing without errors." << std::endl;
+			hasPicked = true;
+			break;
+		case 1:
+			std::cout << "Losing Packet" << std::endl << "Enter packet number to lose: " << std::endl;
+			try{
+			  std::cin >> packetLoss; 
+			  while (packetLoss < 1 || packetLoss > maxSeqNum){
+				std::cout << "Error: You must choose a number greater than 0 but less than the max sequence number. Default is 8" << std::endl;
+				std::cin >> packetLoss;
+			  }
+			} catch (int e) {
+			  std::cout << "Invalid input for packet number! You did something seriously wrong." << std::endl;
+			}
+			hasPicked = true;
+			break;
+		case 2:
+			std::cout << "Damaging Packet" << std::endl << "Enter packet number to damage: " << std::endl;
+			try{
+			  std::cin >> packetDamage; 
+			  while (packetDamage < 1 || packetDamage > maxSeqNum){
+				std::cout << "Error: You must choose a number greater than 0 but less than the max sequence number. Default sequence number is 8." << std::endl;
+				std::cin >> packetDamage;
+			  }
+			} catch (int e) {
+			  std::cout << "Invalid input for packet number! You did something seriously wrong." << std::endl;
+			}
+			hasPicked = true;
+			break;
+		case 3:
+			std::cout << "Losing Ack" << std::endl << "Enter ack number to lose: " << std::endl;
+			try{
+			  std::cin >> packetDamage; 
+			  while (packetDamage < 1 || packetDamage > maxSeqNum){
+				std::cout << "Error: You must choose a number greater than 0 but less than the max sequence number. Default sequence number is 8." << std::endl;
+				std::cin >> packetDamage;
+			  }
+			} catch (int e) {
+			  std::cout << "Invalid input for packet number! You did something seriously wrong." << std::endl;
+			}
+			hasPicked = true;
+			break;
+		default: 
+			std::cout << "Choose a valid option!" << std::endl;
+	}
+  }
+  
   
   packetSize = bodySize+headerSize;
   // Get file location
@@ -112,6 +178,8 @@ int main(int argc, char **argv) {
       std::cout << "Error opening file. Try Again!" << std::endl;
     }
   }
+  
+  
 
 
   // Size of file to be send and number of packets 
@@ -207,6 +275,8 @@ int main(int argc, char **argv) {
   int dataGot = 0;
   int bitsLeft = packetSize;
   int totalSent = 0;
+  
+  //char cache[sequenceNumber][]
 
   // ********************************** Begin Loop of receiving and sending information *********************
   while (currentPacket < numPackets) {
@@ -299,7 +369,7 @@ int main(int argc, char **argv) {
       getNextData = false;
       sleep(1); 
     }
-    currentPacket++;  
+    currentPacket++;
   }
   
   std::cout << "Finished!" << std::endl;
